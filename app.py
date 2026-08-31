@@ -8,8 +8,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# Inisialisasi Groq Client
-# Mengambil API key dari Streamlit Secrets atau Environment Variable
+# Inisialisasi Groq Client dari Streamlit Secrets atau Environment Variable
 groq_api_key = st.secrets.get("GROQ_API_KEY") or os.environ.get("GROQ_API_KEY")
 
 if not groq_api_key:
@@ -18,7 +17,7 @@ if not groq_api_key:
 
 client = Groq(api_key=groq_api_key)
 
-# Tampilkan Logo (Jika ada)
+# Tampilkan Logo (Jika file ada)
 logo_path = "assets/logo.png"
 if os.path.exists(logo_path):
     st.image(logo_path, width=150)
@@ -26,7 +25,7 @@ if os.path.exists(logo_path):
 st.title("🎓 SIKUNTUL AI")
 st.subheader("Sistem Konsultasi Cerdas Menentukan Tujuan Kuliah")
 st.caption("Powered by Groq AI • Universitas Nasional Karangturi TA 2026/2027")
-st.write("Jawab 7 pertanyaan di bawah ini. AI akan menganalisis profilmu secara mendalam untuk memilih 1 dari 7 program studi UNKARTUR yang paling cocok!")
+st.write("Jawab 7 pertanyaan di bawah ini. AI akan menganalisis preferensimu secara mendalam untuk menentukan 1 dari 7 program studi UNKARTUR yang paling cocok!")
 
 # Data 7 Prodi dan Biaya Resmi UNKARTUR (Sesuai Flyer TA 2026/2027)
 prodi_info = {
@@ -167,26 +166,33 @@ if submitted:
     with st.spinner("AI SIKUNTUL sedang menganalisis minat dan bakatmu..."):
         prompt_system = """
         Kamu adalah AI Konselor Akademik profesional untuk Universitas Nasional Karangturi (UNKARTUR).
-        Tugasmu adalah menganalisis jawaban kuesioner siswa dan memilih 1 PROGRAM STUDI TERBAIK dari 7 prodi berikut:
-        1. S1-Manajemen
-        2. S1-Akuntansi
-        3. S1-Sistem Informasi
-        4. S1-Teknologi Pangan
-        5. S1-Psikologi
-        6. S1-Pendidikan Bahasa Inggris
-        7. S1-Manajemen Informasi Kesehatan
+        Tugasmu adalah menganalisis jawaban kuesioner siswa dan memilih EXACT 1 PROGRAM STUDI TERBAIK dari 7 pilihan berikut:
+        - S1-Manajemen
+        - S1-Akuntansi
+        - S1-Sistem Informasi
+        - S1-Teknologi Pangan
+        - S1-Psikologi
+        - S1-Pendidikan Bahasa Inggris
+        - S1-Manajemen Informasi Kesehatan
 
-        Format Output Harus Selalu Mengikuti Pola Tepat Berikut:
-        PRODI: [Nama Prodi Tepat seperti daftar di atas]
-        ALASAN: [Penjelasan personal dan mendalam 2-3 paragraf mengapa prodi ini paling cocok berdasarkan kombinasi jawaban siswa]
-        POTENSI KARIR: [Sebutkan 3-4 potensi karir masa depan]
+        Format Output Bahasa Indonesia yang rapi:
+        **Rekomendasi Utama: [Nama Prodi Tepat seperti daftar di atas]**
+        
+        **Alasan Analisis AI:**
+        [Penjelasan personal dan mendalam mengapa prodi ini paling cocok berdasarkan pola jawaban siswa]
+
+        **Prospek Karir Masa Depan:**
+        - [Karir 1]
+        - [Karir 2]
+        - [Karir 3]
         """
 
         prompt_user = "Berikut adalah jawaban kuesioner siswa:\n" + "\n".join(user_answers)
 
         try:
+            # Menggunakan model llama3-8b-8192 yang stabil di Groq API
             response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="llama3-8b-8192",
                 messages=[
                     {"role": "system", "content": prompt_system},
                     {"role": "user", "content": prompt_user}
@@ -197,8 +203,8 @@ if submitted:
 
             result_text = response.choices[0].message.content
             
-            # Parsing Hasil Groq
-            selected_prodi = "S1-Manajemen" # Fallback
+            # Parsing Hasil Groq untuk Menentukan Gambar & Biaya Mana yang Tampil
+            selected_prodi = "S1-Manajemen" # Default Fallback
             for prodi in prodi_info.keys():
                 if prodi.lower() in result_text.lower():
                     selected_prodi = prodi
@@ -207,34 +213,35 @@ if submitted:
             st.divider()
             st.success("🎉 Analisis AI SIKUNTUL Selesai!")
             
-            # Tampilkan Gambar
+            # Tampilkan Gambar Prodi Terpilih
             img_path = prodi_info[selected_prodi]["img"]
             if os.path.exists(img_path):
                 st.image(img_path, caption=f"Program Studi {selected_prodi}", use_column_width=True)
             
-            # Tampilkan Hasil AI
-            st.markdown(f"### **Rekomendasi Utama AI: {selected_prodi}**")
+            # Tampilkan Hasil Analisis Teks dari AI
             st.markdown(result_text)
             
-            # Tampilkan Biaya Resmi
+            # Tampilkan Rincian Biaya Pendidikan Resmi
             data_biaya = prodi_info[selected_prodi]
             st.markdown("---")
-            st.markdown("#### 💳 **Rincian Biaya Pendidikan (TA 2026/2027)**")
+            st.markdown(f"#### 💳 **Rincian Biaya Pendidikan Resmi ({selected_prodi})**")
+            st.caption("Universitas Nasional Karangturi TA 2026/2027")
             
             col1, col2 = st.columns(2)
             with col1:
                 st.metric(label="SPI (1x Bayar)", value=data_biaya["spi"])
-                st.metric(label="Inisiasi (1x Bayar)", value=data_biaya["inisiasi"])
+                st.metric(label="Biaya Inisiasi (1x Bayar)", value=data_biaya["inisiasi"])
             with col2:
                 st.metric(label="Biaya 20 SKS / Semester", value=data_biaya["sks"])
                 st.metric(label="Daftar Ulang / Semester", value=data_biaya["daftar_ulang"])
                 
             with st.expander("📌 **Catatan Ketentuan Biaya**"):
                 st.write("""
-                1. **SPI** dapat diangsur selama 3x dan harus lunas sebelum kegiatan PKKMB.
-                2. **Biaya Inisiasi** dibayar 1x saat registrasi (orientasi, kaos, & jas almamater).
-                3. **Biaya SKS:** Rp 200.000 / SKS (Praktikum: Rp 250.000 / SKS).
-                4. Biaya belum termasuk magang, cuti, skripsi, dan wisuda (Wisuda = Rp 1.750.000).
+                1. **SPI (Sumbangan Pengembangan Institusi)** dapat diangsur selama 3x dan harus lunas sebelum kegiatan PKKMB.
+                2. **Biaya Inisiasi** dibayar 1x saat registrasi (terdiri dari biaya orientasi, kaos, dan jas almamater).
+                3. **Biaya SKS per Semester:** Rp 200.000 / SKS (Praktikum: Rp 250.000 / SKS).
+                4. Pelunasan Daftar Ulang dan SKS tiap semester sebagai syarat pengisian KRS di awal semester.
+                5. Biaya belum termasuk biaya magang, cuti, skripsi, dan wisuda (Biaya wisuda = Rp 1.750.000).
                 """)
 
         except Exception as e:
