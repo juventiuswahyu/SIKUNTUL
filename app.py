@@ -2,7 +2,7 @@ import streamlit as st
 from groq import Groq
 
 # ---------------------------------------------------------
-# 1. Konfigurasi Halaman & Custom CSS (Maroon Border)
+# 1. Konfigurasi Halaman & Custom CSS (Frame Maroon)
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="SIKUNTUL - Universitas Nasional Karangturi",
@@ -14,7 +14,7 @@ st.set_page_config(
 if "form_key" not in st.session_state:
     st.session_state.form_key = 0
 
-# Header & Style Border Merah Maroon untuk Komponen Radio
+# Header & Style Frame Merah Maroon untuk Container Form
 st.markdown(
     """
     <style>
@@ -40,18 +40,13 @@ st.markdown(
         color: #555555;
     }
 
-    /* Style Border Merah Maroon untuk Setiap Pertanyaan Radio */
-    div[aria-label="stRadio"] {
-        border: 2px solid #800000;
-        border-radius: 10px;
-        padding: 15px;
-        margin-bottom: 20px;
-        background-color: #fafafa;
-    }
-
-    /* Warna Aksesibilitas Tombol Radio Saat Dipilih */
-    div[role="radiogroup"] label[data-baseweb="radio"] div:first-child {
-        border-color: #800000 !important;
+    /* Style Frame / Border Merah Maroon Pembungkus Form Kuesioner */
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        border: 2px solid #800000 !important;
+        border-radius: 12px !important;
+        padding: 20px !important;
+        background-color: #ffffff;
+        box-shadow: 0 4px 6px rgba(128, 0, 0, 0.05);
     }
     </style>
     """,
@@ -78,87 +73,100 @@ st.markdown(
 st.divider()
 
 # ---------------------------------------------------------
-# 2. Form Kuesioner (Dengan Border Maroon)
+# 2. Form Kuesioner Dalam Frame Maroon
 # ---------------------------------------------------------
 responses = {}
 key_suffix = str(st.session_state.form_key)
 
-q1_options = [
-    "A. Mengatur kegiatan atau memimpin sebuah tim",
-    "B. Menghitung dan mengelola keuangan",
-    "C. Mendengarkan dan membantu orang lain",
-    "D. Berkomunikasi menggunakan bahasa Inggris",
-    "E. Menggunakan komputer dan teknologi",
-    "F. Bereksperimen dan menciptakan produk makanan",
-    "G. Mengelola informasi dan data kesehatan"
-]
-responses['q1'] = st.radio("1. Aktivitas seperti apa yang paling kamu nikmati?", q1_options, key=f"q1_{key_suffix}")
+with st.container(border=True):
+    q1_options = [
+        "A. Mengatur kegiatan atau memimpin sebuah tim",
+        "B. Menghitung dan mengelola keuangan",
+        "C. Mendengarkan dan membantu orang lain",
+        "D. Berkomunikasi menggunakan bahasa Inggris",
+        "E. Menggunakan komputer dan teknologi",
+        "F. Bereksperimen dan menciptakan produk makanan",
+        "G. Mengelola informasi dan data kesehatan"
+    ]
+    responses['q1'] = st.radio("1. Aktivitas seperti apa yang paling kamu nikmati?", q1_options, key=f"q1_{key_suffix}")
 
-q2_options = [
-    "A. Pengusaha, manager, atau business development",
-    "B. Akuntan, auditor, atau financial analyst",
-    "C. HR, konselor, atau bidang pengembangan manusia",
-    "D. Guru, penerjemah, atau profesional bahasa",
-    "E. Programmer, system analyst, atau IT",
-    "F. Quality control atau pengembangan produk makanan",
-    "G. Administrasi dan informasi rumah sakit"
-]
-responses['q2'] = st.radio("2. Bidang pekerjaan mana yang paling menarik perhatianmu?", q2_options, key=f"q2_{key_suffix}")
+    st.write("---")
 
-q3_options = [
-    "A. Membuat strategi agar tujuan dapat tercapai",
-    "B. Menganalisis angka dan data secara detail",
-    "C. Memahami orang-orang yang terlibat dalam masalah tersebut",
-    "D. Menjelaskan solusi kepada orang lain dengan komunikasi yang baik",
-    "E. Mencari solusi menggunakan teknologi",
-    "F. Melakukan penelitian atau percobaan",
-    "G. Mengorganisasi dan mengelola data/informasi"
-]
-responses['q3'] = st.radio("3. Jika kamu diberi sebuah masalah, kamu lebih suka…", q3_options, key=f"q3_{key_suffix}")
+    q2_options = [
+        "A. Pengusaha, manager, atau business development",
+        "B. Akuntan, auditor, atau financial analyst",
+        "C. HR, konselor, atau bidang pengembangan manusia",
+        "D. Guru, penerjemah, atau profesional bahasa",
+        "E. Programmer, system analyst, atau IT",
+        "F. Quality control atau pengembangan produk makanan",
+        "G. Administrasi dan informasi rumah sakit"
+    ]
+    responses['q2'] = st.radio("2. Bidang pekerjaan mana yang paling menarik perhatianmu?", q2_options, key=f"q2_{key_suffix}")
 
-q4_options = [
-    "A. Memimpin dan mengambil keputusan",
-    "B. Teliti terhadap angka dan detail",
-    "C. Mudah memahami perasaan orang lain",
-    "D. Suka berkomunikasi dan belajar bahasa",
-    "E. Cepat memahami teknologi",
-    "F. Suka eksperimen dan memahami proses",
-    "G. Suka mengelola data dan informasi"
-]
-responses['q4'] = st.radio("4. Kemampuan apa yang paling menggambarkan dirimu?", q4_options, key=f"q4_{key_suffix}")
+    st.write("---")
 
-q5_options = [
-    "A. Perusahaan atau dunia bisnis",
-    "B. Kantor keuangan atau perusahaan",
-    "C. Lingkungan yang banyak berinteraksi dengan orang",
-    "D. Sekolah atau lingkungan pendidikan",
-    "E. Perusahaan teknologi atau digital",
-    "F. Laboratorium atau industri makanan",
-    "G. Rumah sakit atau fasilitas kesehatan"
-]
-responses['q5'] = st.radio("5. Lingkungan kerja seperti apa yang kamu bayangkan?", q5_options, key=f"q5_{key_suffix}")
+    q3_options = [
+        "A. Membuat strategi agar tujuan dapat tercapai",
+        "B. Menganalisis angka dan data secara detail",
+        "C. Memahami orang-orang yang terlibat dalam masalah tersebut",
+        "D. Menjelaskan solusi kepada orang lain dengan komunikasi yang baik",
+        "E. Mencari solusi menggunakan teknologi",
+        "F. Melakukan penelitian atau percobaan",
+        "G. Mengorganisasi dan mengelola data/informasi"
+    ]
+    responses['q3'] = st.radio("3. Jika kamu diberi sebuah masalah, kamu lebih suka…", q3_options, key=f"q3_{key_suffix}")
 
-q6_options = [
-    "A. Bagaimana sebuah bisnis bisa sukses",
-    "B. Bagaimana perusahaan mengelola uang",
-    "C. Mengapa manusia memiliki perilaku yang berbeda",
-    "D. Bagaimana berkomunikasi dengan orang dari berbagai negara",
-    "E. Bagaimana teknologi dapat membantu kehidupan manusia",
-    "F. Bagaimana makanan dibuat dan dikembangkan",
-    "G. Bagaimana data kesehatan dapat membantu pelayanan pasien"
-]
-responses['q6'] = st.radio("6. Topik apa yang paling sering membuatmu penasaran?", q6_options, key=f"q6_{key_suffix}")
+    st.write("---")
 
-q7_options = [
-    "A. Bisnis dan cara membangun usaha",
-    "B. Investasi, keuangan, dan perpajakan",
-    "C. Kepribadian dan perilaku manusia",
-    "D. Bahasa dan komunikasi internasional",
-    "E. Coding dan teknologi digital",
-    "F. Inovasi produk makanan",
-    "G. Sistem dan informasi pelayanan kesehatan"
-]
-responses['q7'] = st.radio("7. Jika memiliki waktu untuk belajar hal baru, kamu paling tertarik belajar tentang…", q7_options, key=f"q7_{key_suffix}")
+    q4_options = [
+        "A. Memimpin dan mengambil keputusan",
+        "B. Teliti terhadap angka dan detail",
+        "C. Mudah memahami perasaan orang lain",
+        "D. Suka berkomunikasi dan belajar bahasa",
+        "E. Cepat memahami teknologi",
+        "F. Suka eksperimen dan memahami proses",
+        "G. Suka mengelola data dan informasi"
+    ]
+    responses['q4'] = st.radio("4. Kemampuan apa yang paling menggambarkan dirimu?", q4_options, key=f"q4_{key_suffix}")
+
+    st.write("---")
+
+    q5_options = [
+        "A. Perusahaan atau dunia bisnis",
+        "B. Kantor keuangan atau perusahaan",
+        "C. Lingkungan yang banyak berinteraksi dengan orang",
+        "D. Sekolah atau lingkungan pendidikan",
+        "E. Perusahaan teknologi atau digital",
+        "F. Laboratorium atau industri makanan",
+        "G. Rumah sakit atau fasilitas kesehatan"
+    ]
+    responses['q5'] = st.radio("5. Lingkungan kerja seperti apa yang kamu bayangkan?", q5_options, key=f"q5_{key_suffix}")
+
+    st.write("---")
+
+    q6_options = [
+        "A. Bagaimana sebuah bisnis bisa sukses",
+        "B. Bagaimana perusahaan mengelola uang",
+        "C. Mengapa manusia memiliki perilaku yang berbeda",
+        "D. Bagaimana berkomunikasi dengan orang dari berbagai negara",
+        "E. Bagaimana teknologi dapat membantu kehidupan manusia",
+        "F. Bagaimana makanan dibuat dan dikembangkan",
+        "G. Bagaimana data kesehatan dapat membantu pelayanan pasien"
+    ]
+    responses['q6'] = st.radio("6. Topik apa yang paling sering membuatmu penasaran?", q6_options, key=f"q6_{key_suffix}")
+
+    st.write("---")
+
+    q7_options = [
+        "A. Bisnis dan cara membangun usaha",
+        "B. Investasi, keuangan, dan perpajakan",
+        "C. Kepribadian dan perilaku manusia",
+        "D. Bahasa dan komunikasi internasional",
+        "E. Coding dan teknologi digital",
+        "F. Inovasi produk makanan",
+        "G. Sistem dan informasi pelayanan kesehatan"
+    ]
+    responses['q7'] = st.radio("7. Jika memiliki waktu untuk belajar hal baru, kamu paling tertarik belajar tentang…", q7_options, key=f"q7_{key_suffix}")
 
 st.divider()
 
