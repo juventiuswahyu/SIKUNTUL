@@ -94,7 +94,7 @@ st.markdown(
     <div class="header-container">
         <div class="header-title">SIKUNTUL</div>
         <div class="header-subtitle">Sistem Konsultasi untuk Menentukan Tujuan Kuliah</div>
-        <div class="header-desc">Pilih jawaban yang paling mencerminkan dirimu untuk mendapatkan analisis rekomendasi jurusan komprehensif beserta rincian biayanya!</div>
+        <div class="header-desc">Isi data diri dan pilih jawaban yang paling mencerminkan dirimu untuk mendapatkan analisis rekomendasi jurusan komprehensif beserta rincian biayanya!</div>
     </div>
     """,
     unsafe_allow_html=True
@@ -107,6 +107,23 @@ responses = {}
 key_suffix = str(st.session_state.form_key)
 
 with st.container(border=True):
+    # --- Form Data Diri (Wajib) ---
+    st.markdown("### 📋 Data Diri Pengguna")
+    
+    col_d1, col_d2 = st.columns(2)
+    with col_d1:
+        nama = st.text_input("Nama Lengkap *", placeholder="Contoh: Budi Santoso", key=f"nama_{key_suffix}")
+        asal_sekolah = st.text_input("Asal Sekolah *", placeholder="Contoh: SMA Negeri 1 Semarang", key=f"sekolah_{key_suffix}")
+    
+    with col_d2:
+        kelas = st.text_input("Kelas *", placeholder="Contoh: 12 IPA 2 / 12 IPS 1", key=f"kelas_{key_suffix}")
+        no_hp = st.text_input("No HP / WhatsApp *", placeholder="Contoh: 081234567890", key=f"hp_{key_suffix}")
+
+    st.write("---")
+
+    # --- Kuesioner Pilihan A-G ---
+    st.markdown("### 🎯 Kuesioner Minat & Bakat")
+
     q1_options = [
         "A. Mengatur kegiatan atau memimpin sebuah tim",
         "B. Menghitung dan mengelola keuangan",
@@ -213,10 +230,13 @@ with col2:
         st.rerun()
 
 # ---------------------------------------------------------
-# 4. Pemrosesan AI
+# 4. Pemrosesan AI dengan Validasi Data Diri Wajib
 # ---------------------------------------------------------
 if btn_analyze:
-    if "GROQ_API_KEY" not in st.secrets:
+    # Validasi input wajib diisi
+    if not nama.strip() or not kelas.strip() or not asal_sekolah.strip() or not no_hp.strip():
+        st.warning("⚠️ Mohon lengkapi seluruh Data Diri (Nama, Kelas, Asal Sekolah, dan No HP) sebelum melanjutkan!")
+    elif "GROQ_API_KEY" not in st.secrets:
         st.error("GROQ_API_KEY belum ditemukan di Streamlit Secrets.")
     else:
         try:
@@ -224,7 +244,13 @@ if btn_analyze:
             
             prompt_content = f"""
             Kamu adalah konsultan akademik dan karir senior Universitas Nasional Karangturi bernama SIKUNTUL.
-            Analisis pilihan kuesioner pengguna di bawah ini untuk menghasilkan **Hasil Analisis yang Komprehensif dan Terstruktur Sesuai Format Strict**.
+            Analisis data dan pilihan kuesioner pengguna di bawah ini untuk menghasilkan **Hasil Analisis yang Komprehensif dan Terstruktur Sesuai Format Strict**.
+
+            Data Pengguna:
+            - Nama: {nama}
+            - Kelas: {kelas}
+            - Asal Sekolah: {asal_sekolah}
+            - No HP: {no_hp}
 
             Pilihan Jurusan yang Tersedia:
             - S1-Manajemen
@@ -285,7 +311,7 @@ if btn_analyze:
                 )
                 
                 result = chat_completion.choices[0].message.content
-                st.success("Analisis Komprehensif Selesai!")
+                st.success(f"Analisis Komprehensif Selesai untuk {nama}!")
                 st.markdown(result, unsafe_allow_html=True)
 
         except Exception as e:
