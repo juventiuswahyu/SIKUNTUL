@@ -44,7 +44,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Menampilkan logo di tengah (ukuran disesuaikan)
+# Menampilkan logo di tengah
 col_left, col_logo, col_right = st.columns([1.2, 1.6, 1.2])
 with col_logo:
     st.image("logo (2).png", use_container_width=True)
@@ -64,7 +64,7 @@ st.markdown(
 st.divider()
 
 # ---------------------------------------------------------
-# 2. Form Kuesioner (Dropdown Pilihan A - G)
+# 2. Form Kuesioner (Radio Button Pilihan A - G Terbuka)
 # ---------------------------------------------------------
 responses = {}
 key_suffix = str(st.session_state.form_key)
@@ -78,7 +78,7 @@ q1_options = [
     "F. Bereksperimen dan menciptakan produk makanan",
     "G. Mengelola informasi dan data kesehatan"
 ]
-responses['q1'] = st.selectbox("1. Aktivitas seperti apa yang paling kamu nikmati?", q1_options, key=f"q1_{key_suffix}")
+responses['q1'] = st.radio("1. Aktivitas seperti apa yang paling kamu nikmati?", q1_options, key=f"q1_{key_suffix}")
 
 q2_options = [
     "A. Pengusaha, manager, atau business development",
@@ -89,7 +89,7 @@ q2_options = [
     "F. Quality control atau pengembangan produk makanan",
     "G. Administrasi dan informasi rumah sakit"
 ]
-responses['q2'] = st.selectbox("2. Bidang pekerjaan mana yang paling menarik perhatianmu?", q2_options, key=f"q2_{key_suffix}")
+responses['q2'] = st.radio("2. Bidang pekerjaan mana yang paling menarik perhatianmu?", q2_options, key=f"q2_{key_suffix}")
 
 q3_options = [
     "A. Membuat strategi agar tujuan dapat tercapai",
@@ -100,7 +100,7 @@ q3_options = [
     "F. Melakukan penelitian atau percobaan",
     "G. Mengorganisasi dan mengelola data/informasi"
 ]
-responses['q3'] = st.selectbox("3. Jika kamu diberi sebuah masalah, kamu lebih suka…", q3_options, key=f"q3_{key_suffix}")
+responses['q3'] = st.radio("3. Jika kamu diberi sebuah masalah, kamu lebih suka…", q3_options, key=f"q3_{key_suffix}")
 
 q4_options = [
     "A. Memimpin dan mengambil keputusan",
@@ -111,7 +111,7 @@ q4_options = [
     "F. Suka eksperimen dan memahami proses",
     "G. Suka mengelola data dan informasi"
 ]
-responses['q4'] = st.selectbox("4. Kemampuan apa yang paling menggambarkan dirimu?", q4_options, key=f"q4_{key_suffix}")
+responses['q4'] = st.radio("4. Kemampuan apa yang paling menggambarkan dirimu?", q4_options, key=f"q4_{key_suffix}")
 
 q5_options = [
     "A. Perusahaan atau dunia bisnis",
@@ -122,7 +122,7 @@ q5_options = [
     "F. Laboratorium atau industri makanan",
     "G. Rumah sakit atau fasilitas kesehatan"
 ]
-responses['q5'] = st.selectbox("5. Lingkungan kerja seperti apa yang kamu bayangkan?", q5_options, key=f"q5_{key_suffix}")
+responses['q5'] = st.radio("5. Lingkungan kerja seperti apa yang kamu bayangkan?", q5_options, key=f"q5_{key_suffix}")
 
 q6_options = [
     "A. Bagaimana sebuah bisnis bisa sukses",
@@ -133,7 +133,7 @@ q6_options = [
     "F. Bagaimana makanan dibuat dan dikembangkan",
     "G. Bagaimana data kesehatan dapat membantu pelayanan pasien"
 ]
-responses['q6'] = st.selectbox("6. Topik apa yang paling sering membuatmu penasaran?", q6_options, key=f"q6_{key_suffix}")
+responses['q6'] = st.radio("6. Topik apa yang paling sering membuatmu penasaran?", q6_options, key=f"q6_{key_suffix}")
 
 q7_options = [
     "A. Bisnis dan cara membangun usaha",
@@ -144,7 +144,7 @@ q7_options = [
     "F. Inovasi produk makanan",
     "G. Sistem dan informasi pelayanan kesehatan"
 ]
-responses['q7'] = st.selectbox("7. Jika memiliki waktu untuk belajar hal baru, kamu paling tertarik belajar tentang…", q7_options, key=f"q7_{key_suffix}")
+responses['q7'] = st.radio("7. Jika memiliki waktu untuk belajar hal baru, kamu paling tertarik belajar tentang…", q7_options, key=f"q7_{key_suffix}")
 
 st.divider()
 
