@@ -1,8 +1,9 @@
 import streamlit as st
 from groq import Groq
+import base64
 
 # ---------------------------------------------------------
-# 1. Konfigurasi Halaman & Custom CSS (Frame Maroon)
+# 1. Konfigurasi Halaman & Custom CSS (Ultra Compact & Maroon Frame)
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="SIKUNTUL - Universitas Nasional Karangturi",
@@ -14,47 +15,76 @@ st.set_page_config(
 if "form_key" not in st.session_state:
     st.session_state.form_key = 0
 
-# Header & Style Frame Merah Maroon untuk Container Form
+# Fungsi helper untuk membaca gambar lokal menjadi Base64 (untuk CSS Background)
+def get_base64_of_bin_file(bin_file):
+    try:
+        with open(bin_file, 'rb') as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except Exception:
+        return ""
+
+bg_img_base64 = get_base64_of_bin_file("bd design uk (1).jpg")
+
+# CSS Kustom: Mengurangi spasi secara drastis & memasang background gambar pada container
 st.markdown(
-    """
+    f"""
     <style>
-    .header-container {
+    /* Kurangi padding utama Streamlit */
+    .block-container {{
+        padding-top: 1rem !important;
+        padding-bottom: 2rem !important;
+    }}
+
+    .header-container {{
         text-align: center;
-        margin-top: -30px;
-        margin-bottom: 20px;
-    }
-    .header-title {
-        font-size: 2.2rem;
+        margin-top: -15px;
+        margin-bottom: 10px;
+    }}
+    .header-title {{
+        font-size: 2rem;
         font-weight: 700;
-        margin-top: 5px;
-        margin-bottom: 5px;
-    }
-    .header-subtitle {
-        font-size: 1.25rem;
+        margin-top: 0px;
+        margin-bottom: 2px;
+        line-height: 1.1;
+    }}
+    .header-subtitle {{
+        font-size: 1.15rem;
         font-weight: 600;
         color: #31333F;
-        margin-bottom: 8px;
-    }
-    .header-desc {
-        font-size: 0.95rem;
+        margin-bottom: 4px;
+        line-height: 1.2;
+    }}
+    .header-desc {{
+        font-size: 0.9rem;
         color: #555555;
-    }
+        line-height: 1.3;
+    }}
 
-    /* Style Frame / Border Merah Maroon Pembungkus Form Kuesioner */
-    div[data-testid="stVerticalBlockBorderWrapper"] {
-        border: 2px solid #800000 !important;
+    /* Frame Utama dengan Border Maroon dan Corner Background Gambar */
+    div[data-testid="stVerticalBlockBorderWrapper"] {{
+        border: 2.5px solid #800000 !important;
         border-radius: 12px !important;
-        padding: 20px !important;
+        padding: 15px !important;
         background-color: #ffffff;
-        box-shadow: 0 4px 6px rgba(128, 0, 0, 0.05);
-    }
+        background-image: url("data:image/jpeg;base64,{bg_img_base64}");
+        background-repeat: no-repeat;
+        background-position: bottom center;
+        background-size: contain;
+        box-shadow: 0 4px 6px rgba(128, 0, 0, 0.08);
+    }}
+
+    /* Kurangi spasi antar pertanyaan dalam radio group */
+    div[aria-label="stRadio"] {{
+        margin-bottom: -5px;
+    }}
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# Menampilkan logo di tengah
-col_left, col_logo, col_right = st.columns([1.2, 1.6, 1.2])
+# Menampilkan logo di tengah (dengan padding rapat)
+col_left, col_logo, col_right = st.columns([1.3, 1.4, 1.3])
 with col_logo:
     st.image("logo (2).png", use_container_width=True)
 
@@ -70,10 +100,8 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.divider()
-
 # ---------------------------------------------------------
-# 2. Form Kuesioner Dalam Frame Maroon
+# 2. Form Kuesioner Dalam Frame Maroon & Background Gambar
 # ---------------------------------------------------------
 responses = {}
 key_suffix = str(st.session_state.form_key)
@@ -168,7 +196,8 @@ with st.container(border=True):
     ]
     responses['q7'] = st.radio("7. Jika memiliki waktu untuk belajar hal baru, kamu paling tertarik belajar tentang…", q7_options, key=f"q7_{key_suffix}")
 
-st.divider()
+    # Jarak bawah di dalam container untuk memberi ruang tampilan background gambar
+    st.markdown("<div style='height: 120px;'></div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # 3. Tombol Eksekusi & Reset
