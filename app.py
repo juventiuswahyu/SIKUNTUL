@@ -14,9 +14,12 @@ st.set_page_config(
 if "form_key" not in st.session_state:
     st.session_state.form_key = 0
 
-# Menampilkan logo GIF pengganti teks/emoji lama
-st.image("logo.gif", width=250)
-st.title("SIKUNTUL")
+# Trik meletakkan logo persis di tengah (center) menggunakan st.columns
+col_left, col_logo, col_right = st.columns([1, 2, 1])
+with col_logo:
+    st.image("logo (2).png", use_container_width=True)
+
+st.title("🎓 SIKUNTUL")
 st.subheader("Sistem Konsultasi untuk Menentukan Tujuan Kuliah")
 st.write("Pilih jawaban yang paling mencerminkan dirimu untuk mendapatkan analisis rekomendasi jurusan komprehensif beserta rincian biayanya!")
 
@@ -121,7 +124,7 @@ with col2:
         st.rerun()
 
 # ---------------------------------------------------------
-# 4. Pemrosesan AI
+# 4. Pemrosesan AI dengan Format Output HTML/Markdown
 # ---------------------------------------------------------
 if btn_analyze:
     if "GROQ_API_KEY" not in st.secrets:
