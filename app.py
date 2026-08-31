@@ -119,7 +119,7 @@ with col2:
         st.rerun()
 
 # ---------------------------------------------------------
-# 4. Pemrosesan AI dengan Format Hasil Analisis Seragam (Tabel)
+# 4. Pemrosesan AI dengan Penanganan HTML & Baris Baru
 # ---------------------------------------------------------
 if btn_analyze:
     if "GROQ_API_KEY" not in st.secrets:
@@ -150,19 +150,21 @@ if btn_analyze:
             6. Topik Penasaran: {responses['q6']}
             7. Minat Belajar: {responses['q7']}
 
-            WAJIB GUNAKAN FORMAT HIERARKI PENULISAN BERIKUT SECARA PERSIS TANPA MEMBUAT JUDUL/BAGIAN BARU LAIN:
+            WAJIB GUNAKAN FORMAT HIERARKI PENULISAN BERIKUT SECARA PERSIS:
 
             1. **Kesimpulan Jurusan Utama**: [Nama Jurusan]
             2. **Jurusan Alternatif**: [1-2 Nama Jurusan Cadangan]
             3. **Hasil Analisis**:
-               Buatlah tabel Markdown persis dengan 2 kolom: `Aspek` dan `Penjelasan`.
+               Buatlah tabel HTML persis dengan 2 kolom: `Aspek` dan `Penjelasan`. Gunakan tag HTML `<table>`, `<tr>`, `<th>`, `<td>`, dan `<br>` agar penggantian baris di dalam sel tabel dapat dirender sempurna oleh browser.
+               
                Tabel WAJIB mencakup 4 baris aspek berikut:
-               | Aspek | Penjelasan |
-               | --- | --- |
-               | Pola Dominasi Karakter & Minat | [Penjelasan kecenderungan profil pengguna] |
-               | Kesesuaian Kompetensi | - Gaya Pemecahan Masalah: [penjelasan selaras kurikulum]<br>- Kemampuan Detail/Teknis: [penjelasan mata kuliah]<br>- Ketertarikan Khusus: [penjelasan integrasi minat] |
-               | Alasan Pemilihan Jurusan Utama vs Alternatif | - [Jurusan Utama] menjadi pilihan paling optimum karena [alasan].<br>- [Jurusan Alternatif 1] cocok sebagai alternatif bila [alasan].<br>- [Jurusan Alternatif 2] cocok bila [alasan]. |
-               | Rekomendasi Pengembangan Diri | 1. [Langkah 1]<br>2. [Langkah 2]<br>3. [Langkah 3] |
+               <table>
+                 <tr><th>Aspek</th><th>Penjelasan</th></tr>
+                 <tr><td>Pola Dominasi Karakter & Minat</td><td>[Penjelasan kecenderungan profil pengguna]</td></tr>
+                 <tr><td>Kesesuaian Kompetensi</td><td>• Gaya Pemecahan Masalah: [penjelasan selaras kurikulum]<br>• Kemampuan Detail/Teknis: [penjelasan mata kuliah]<br>• Ketertarikan Khusus: [penjelasan integrasi minat]</td></tr>
+                 <tr><td>Alasan Pemilihan Jurusan Utama vs Alternatif</td><td>• <b>[Jurusan Utama]</b>: [alasan].<br>• <b>[Jurusan Alternatif 1]</b>: [alasan].<br>• <b>[Jurusan Alternatif 2]</b>: [alasan].</td></tr>
+                 <tr><td>Rekomendasi Pengembangan Diri</td><td>1. [Langkah 1]<br>2. [Langkah 2]<br>3. [Langkah 3]</td></tr>
+               </table>
 
             4. **Rincian Biaya**:
                Tampilkan rincian biaya Pendidikan TA 2026/2027 Universitas Nasional Karangturi dalam bentuk tabel Markdown ringkas:
@@ -177,7 +179,7 @@ if btn_analyze:
                     messages=[
                         {
                             "role": "system",
-                            "content": "Kamu adalah konsultan pendidikan yang selalu mematuhi struktur instruksi format tabel Markdown dengan sangat ketat dan presisi."
+                            "content": "Kamu adalah konsultan pendidikan yang mematuhi format HTML dan Markdown dengan sangat teliti."
                         },
                         {
                             "role": "user",
@@ -190,7 +192,8 @@ if btn_analyze:
                 
                 result = chat_completion.choices[0].message.content
                 st.success("Analisis Komprehensif Selesai!")
-                st.markdown(result)
+                # Mengaktifkan unsafe_allow_html agar tag <br> dan tabel HTML dirender dengan rapi
+                st.markdown(result, unsafe_allow_html=True)
 
         except Exception as e:
             st.error(f"Terjadi kesalahan saat mengonsultasikan ke AI: {e}")
