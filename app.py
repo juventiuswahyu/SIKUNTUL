@@ -1,6 +1,10 @@
 import streamlit as st
 from groq import Groq
 import base64
+import gspread
+from datetime import datetime
+import json
+import re
 
 # ---------------------------------------------------------
 # 1. Konfigurasi Halaman & Custom CSS (Ultra Compact & Maroon Frame)
@@ -11,11 +15,9 @@ st.set_page_config(
     layout="centered"
 )
 
-# Inisialisasi state untuk reset form
 if "form_key" not in st.session_state:
     st.session_state.form_key = 0
 
-# Fungsi helper untuk membaca gambar lokal menjadi Base64 (untuk CSS Background)
 def get_base64_of_bin_file(bin_file):
     try:
         with open(bin_file, 'rb') as f:
@@ -26,16 +28,13 @@ def get_base64_of_bin_file(bin_file):
 
 bg_img_base64 = get_base64_of_bin_file("bd design uk (1).jpg")
 
-# CSS Kustom: Mengurangi spasi secara drastis & memasang background gambar pada container
 st.markdown(
     f"""
     <style>
-    /* Kurangi padding utama Streamlit */
     .block-container {{
         padding-top: 1rem !important;
         padding-bottom: 2rem !important;
     }}
-
     .header-container {{
         text-align: center;
         margin-top: -15px;
@@ -60,8 +59,6 @@ st.markdown(
         color: #555555;
         line-height: 1.3;
     }}
-
-    /* Frame Utama dengan Border Maroon dan Corner Background Gambar */
     div[data-testid="stVerticalBlockBorderWrapper"] {{
         border: 2.5px solid #800000 !important;
         border-radius: 12px !important;
@@ -73,8 +70,6 @@ st.markdown(
         background-size: contain;
         box-shadow: 0 4px 6px rgba(128, 0, 0, 0.08);
     }}
-
-    /* Kurangi spasi antar pertanyaan dalam radio group */
     div[aria-label="stRadio"] {{
         margin-bottom: -5px;
     }}
@@ -83,12 +78,26 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Menampilkan logo di tengah (dengan padding rapat)
+# ---------------------------------------------------------
+# Helper Function: Save to Google Sheets
+# ---------------------------------------------------------
+def save_to_gsheet(data_row):
+    try:
+        gc = gspread.service_account_from_dict(st.secrets["gcp_service_account"])
+        sheet = gc.open("Data SIKUNTUL").sheet1
+        sheet.append_row(data_row)
+        return True
+    except Exception as e:
+        st.error(f"Gagal menyimpan data ke Google Sheets: {e}")
+        return False
+
+# ---------------------------------------------------------
+# Header & UI Layout
+# ---------------------------------------------------------
 col_left, col_logo, col_right = st.columns([1.3, 1.4, 1.3])
 with col_logo:
     st.image("logo (2).png", use_container_width=True)
 
-# Teks Header Rata Tengah
 st.markdown(
     """
     <div class="header-container">
@@ -101,119 +110,51 @@ st.markdown(
 )
 
 # ---------------------------------------------------------
-# 2. Form Kuesioner Dalam Frame Maroon & Background Gambar
+# 2. Form Kuesioner
 # ---------------------------------------------------------
 responses = {}
 key_suffix = str(st.session_state.form_key)
 
 with st.container(border=True):
-    # --- Form Data Diri (Wajib) ---
     st.markdown("### 📋 Data Diri Pengguna")
-    
     col_d1, col_d2 = st.columns(2)
     with col_d1:
         nama = st.text_input("Nama Lengkap *", placeholder="Contoh: Budi Santoso", key=f"nama_{key_suffix}")
         asal_sekolah = st.text_input("Asal Sekolah *", placeholder="Contoh: SMA Negeri 1 Semarang", key=f"sekolah_{key_suffix}")
-    
     with col_d2:
-        kelas = st.text_input("Kelas *", placeholder="Contoh: 12 IPA 2 / 12 IPS 1", key=f"kelas_{key_suffix}")
+        kelas = st.text_input("Kelas *", placeholder="Contoh: 12 IPA 2", key=f"kelas_{key_suffix}")
         no_hp = st.text_input("No HP / WhatsApp *", placeholder="Contoh: 081234567890", key=f"hp_{key_suffix}")
 
     st.write("---")
-
-    # --- Kuesioner Pilihan A-G ---
     st.markdown("### 🎯 Kuesioner Minat & Bakat")
 
-    q1_options = [
-        "A. Mengatur kegiatan atau memimpin sebuah tim",
-        "B. Menghitung dan mengelola keuangan",
-        "C. Mendengarkan dan membantu orang lain",
-        "D. Berkomunikasi menggunakan bahasa Inggris",
-        "E. Menggunakan komputer dan teknologi",
-        "F. Bereksperimen dan menciptakan produk makanan",
-        "G. Mengelola informasi dan data kesehatan"
-    ]
+    q1_options = ["A. Mengatur kegiatan atau memimpin sebuah tim", "B. Menghitung dan mengelola keuangan", "C. Mendengarkan dan membantu orang lain", "D. Berkomunikasi menggunakan bahasa Inggris", "E. Menggunakan komputer dan teknologi", "F. Bereksperimen dan menciptakan produk makanan", "G. Mengelola informasi dan data kesehatan"]
     responses['q1'] = st.radio("1. Aktivitas seperti apa yang paling kamu nikmati?", q1_options, key=f"q1_{key_suffix}")
-
     st.write("---")
 
-    q2_options = [
-        "A. Pengusaha, manager, atau business development",
-        "B. Akuntan, auditor, atau financial analyst",
-        "C. HR, konselor, atau bidang pengembangan manusia",
-        "D. Guru, penerjemah, atau profesional bahasa",
-        "E. Programmer, system analyst, atau IT",
-        "F. Quality control atau pengembangan produk makanan",
-        "G. Administrasi dan informasi rumah sakit"
-    ]
+    q2_options = ["A. Pengusaha, manager, atau business development", "B. Akuntan, auditor, atau financial analyst", "C. HR, konselor, atau bidang pengembangan manusia", "D. Guru, penerjemah, atau profesional bahasa", "E. Programmer, system analyst, atau IT", "F. Quality control atau pengembangan produk makanan", "G. Administrasi dan informasi rumah sakit"]
     responses['q2'] = st.radio("2. Bidang pekerjaan mana yang paling menarik perhatianmu?", q2_options, key=f"q2_{key_suffix}")
-
     st.write("---")
 
-    q3_options = [
-        "A. Membuat strategi agar tujuan dapat tercapai",
-        "B. Menganalisis angka dan data secara detail",
-        "C. Memahami orang-orang yang terlibat dalam masalah tersebut",
-        "D. Menjelaskan solusi kepada orang lain dengan komunikasi yang baik",
-        "E. Mencari solusi menggunakan teknologi",
-        "F. Melakukan penelitian atau percobaan",
-        "G. Mengorganisasi dan mengelola data/informasi"
-    ]
+    q3_options = ["A. Membuat strategi agar tujuan dapat tercapai", "B. Menganalisis angka dan data secara detail", "C. Memahami orang-orang yang terlibat dalam masalah tersebut", "D. Menjelaskan solusi kepada orang lain dengan komunikasi yang baik", "E. Mencari solusi menggunakan teknologi", "F. Melakukan penelitian atau percobaan", "G. Mengorganisasi dan mengelola data/informasi"]
     responses['q3'] = st.radio("3. Jika kamu diberi sebuah masalah, kamu lebih suka…", q3_options, key=f"q3_{key_suffix}")
-
     st.write("---")
 
-    q4_options = [
-        "A. Memimpin dan mengambil keputusan",
-        "B. Teliti terhadap angka dan detail",
-        "C. Mudah memahami perasaan orang lain",
-        "D. Suka berkomunikasi dan belajar bahasa",
-        "E. Cepat memahami teknologi",
-        "F. Suka eksperimen dan memahami proses",
-        "G. Suka mengelola data dan informasi"
-    ]
+    q4_options = ["A. Memimpin dan mengambil keputusan", "B. Teliti terhadap angka dan detail", "C. Mudah memahami perasaan orang lain", "D. Suka berkomunikasi dan belajar bahasa", "E. Cepat memahami teknologi", "F. Suka eksperimen dan memahami proses", "G. Suka mengelola data dan informasi"]
     responses['q4'] = st.radio("4. Kemampuan apa yang paling menggambarkan dirimu?", q4_options, key=f"q4_{key_suffix}")
-
     st.write("---")
 
-    q5_options = [
-        "A. Perusahaan atau dunia bisnis",
-        "B. Kantor keuangan atau perusahaan",
-        "C. Lingkungan yang banyak berinteraksi dengan orang",
-        "D. Sekolah atau lingkungan pendidikan",
-        "E. Perusahaan teknologi atau digital",
-        "F. Laboratorium atau industri makanan",
-        "G. Rumah sakit atau fasilitas kesehatan"
-    ]
+    q5_options = ["A. Perusahaan atau dunia bisnis", "B. Kantor keuangan atau perusahaan", "C. Lingkungan yang banyak berinteraksi dengan orang", "D. Sekolah atau lingkungan pendidikan", "E. Perusahaan teknologi atau digital", "F. Laboratorium atau industri makanan", "G. Rumah sakit atau fasilitas kesehatan"]
     responses['q5'] = st.radio("5. Lingkungan kerja seperti apa yang kamu bayangkan?", q5_options, key=f"q5_{key_suffix}")
-
     st.write("---")
 
-    q6_options = [
-        "A. Bagaimana sebuah bisnis bisa sukses",
-        "B. Bagaimana perusahaan mengelola uang",
-        "C. Mengapa manusia memiliki perilaku yang berbeda",
-        "D. Bagaimana berkomunikasi dengan orang dari berbagai negara",
-        "E. Bagaimana teknologi dapat membantu kehidupan manusia",
-        "F. Bagaimana makanan dibuat dan dikembangkan",
-        "G. Bagaimana data kesehatan dapat membantu pelayanan pasien"
-    ]
+    q6_options = ["A. Bagaimana sebuah bisnis bisa sukses", "B. Bagaimana perusahaan mengelola uang", "C. Mengapa manusia memiliki perilaku yang berbeda", "D. Bagaimana berkomunikasi dengan orang dari berbagai negara", "E. Bagaimana teknologi dapat membantu kehidupan manusia", "F. Bagaimana makanan dibuat dan dikembangkan", "G. Bagaimana data kesehatan dapat membantu pelayanan pasien"]
     responses['q6'] = st.radio("6. Topik apa yang paling sering membuatmu penasaran?", q6_options, key=f"q6_{key_suffix}")
-
     st.write("---")
 
-    q7_options = [
-        "A. Bisnis dan cara membangun usaha",
-        "B. Investasi, keuangan, dan perpajakan",
-        "C. Kepribadian dan perilaku manusia",
-        "D. Bahasa dan komunikasi internasional",
-        "E. Coding dan teknologi digital",
-        "F. Inovasi produk makanan",
-        "G. Sistem dan informasi pelayanan kesehatan"
-    ]
+    q7_options = ["A. Bisnis dan cara membangun usaha", "B. Investasi, keuangan, dan perpajakan", "C. Kepribadian dan perilaku manusia", "D. Bahasa dan komunikasi internasional", "E. Coding dan teknologi digital", "F. Inovasi produk makanan", "G. Sistem dan informasi pelayanan kesehatan"]
     responses['q7'] = st.radio("7. Jika memiliki waktu untuk belajar hal baru, kamu paling tertarik belajar tentang…", q7_options, key=f"q7_{key_suffix}")
 
-    # Jarak bawah di dalam container untuk memberi ruang tampilan background gambar
     st.markdown("<div style='height: 120px;'></div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
@@ -230,71 +171,70 @@ with col2:
         st.rerun()
 
 # ---------------------------------------------------------
-# 4. Pemrosesan AI dengan Validasi Data Diri Wajib
+# 4. Pemrosesan Backend & AI
 # ---------------------------------------------------------
 if btn_analyze:
-    # Validasi input wajib diisi
     if not nama.strip() or not kelas.strip() or not asal_sekolah.strip() or not no_hp.strip():
         st.warning("⚠️ Mohon lengkapi seluruh Data Diri (Nama, Kelas, Asal Sekolah, dan No HP) sebelum melanjutkan!")
     elif "GROQ_API_KEY" not in st.secrets:
         st.error("GROQ_API_KEY belum ditemukan di Streamlit Secrets.")
     else:
-        try:
-            client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-            
-            prompt_content = f"""
-            Kamu adalah konsultan akademik dan karir senior Universitas Nasional Karangturi bernama SIKUNTUL.
-            Analisis data dan pilihan kuesioner pengguna di bawah ini untuk menghasilkan **Hasil Analisis yang Komprehensif dan Terstruktur Sesuai Format Strict**.
+        with st.spinner("SIKUNTUL sedang menyusun analisis dan menyimpan data..."):
+            try:
+                client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+                
+                prompt_content = f"""
+                Kamu adalah konsultan akademik dan karir senior Universitas Nasional Karangturi bernama SIKUNTUL.
+                Analisis data dan pilihan kuesioner pengguna di bawah ini untuk menghasilkan **Hasil Analisis yang Komprehensif dan Terstruktur Sesuai Format Strict**.
 
-            Data Pengguna:
-            - Nama: {nama}
-            - Kelas: {kelas}
-            - Asal Sekolah: {asal_sekolah}
-            - No HP: {no_hp}
+                Data Pengguna:
+                - Nama: {nama}
+                - Kelas: {kelas}
+                - Asal Sekolah: {asal_sekolah}
+                - No HP: {no_hp}
 
-            Pilihan Jurusan yang Tersedia:
-            - S1-Manajemen
-            - S1-Akuntansi
-            - S1-Sistem Informasi
-            - S1-Teknologi Pangan
-            - S1-Psikologi
-            - S1-Pendidikan Bahasa Inggris
-            - S1-Manajemen Informasi Kesehatan
+                Pilihan Jurusan yang Tersedia:
+                - S1-Manajemen
+                - S1-Akuntansi
+                - S1-Sistem Informasi
+                - S1-Teknologi Pangan
+                - S1-Psikologi
+                - S1-Pendidikan Bahasa Inggris
+                - S1-Manajemen Informasi Kesehatan
 
-            Jawaban Pengguna:
-            1. Aktivitas: {responses['q1']}
-            2. Pekerjaan: {responses['q2']}
-            3. Penanganan Masalah: {responses['q3']}
-            4. Kemampuan Diri: {responses['q4']}
-            5. Lingkungan Kerja: {responses['q5']}
-            6. Topik Penasaran: {responses['q6']}
-            7. Minat Belajar: {responses['q7']}
+                Jawaban Pengguna:
+                1. Aktivitas: {responses['q1']}
+                2. Pekerjaan: {responses['q2']}
+                3. Penanganan Masalah: {responses['q3']}
+                4. Kemampuan Diri: {responses['q4']}
+                5. Lingkungan Kerja: {responses['q5']}
+                6. Topik Penasaran: {responses['q6']}
+                7. Minat Belajar: {responses['q7']}
 
-            WAJIB GUNAKAN FORMAT HIERARKI PENULISAN BERIKUT SECARA PERSIS:
+                WAJIB GUNAKAN FORMAT HIERARKI PENULISAN BERIKUT SECARA PERSIS:
 
-            1. **Kesimpulan Jurusan Utama**: [Nama Jurusan]
-            2. **Jurusan Alternatif**: [1-2 Nama Jurusan Cadangan]
-            3. **Hasil Analisis**:
-               Buatlah tabel HTML persis dengan 2 kolom: `Aspek` dan `Penjelasan`. Gunakan tag HTML `<table>`, `<tr>`, `<th>`, `<td>`, dan `<br>` agar penggantian baris di dalam sel tabel dapat dirender sempurna oleh browser.
-               
-               Tabel WAJIB mencakup 4 baris aspek berikut:
-               <table>
-                 <tr><th>Aspek</th><th>Penjelasan</th></tr>
-                 <tr><td>Pola Dominasi Karakter & Minat</td><td>[Penjelasan kecenderungan profil pengguna]</td></tr>
-                 <tr><td>Kesesuaian Kompetensi</td><td>• Gaya Pemecahan Masalah: [penjelasan selaras kurikulum]<br>• Kemampuan Detail/Teknis: [penjelasan mata kuliah]<br>• Ketertarikan Khusus: [penjelasan integrasi minat]</td></tr>
-                 <tr><td>Alasan Pemilihan Jurusan Utama vs Alternatif</td><td>• <b>[Jurusan Utama]</b>: [alasan].<br>• <b>[Jurusan Alternatif 1]</b>: [alasan].<br>• <b>[Jurusan Alternatif 2]</b>: [alasan].</td></tr>
-                 <tr><td>Rekomendasi Pengembangan Diri</td><td>1. [Langkah 1]<br>2. [Langkah 2]<br>3. [Langkah 3]</td></tr>
-               </table>
+                1. **Kesimpulan Jurusan Utama**: [Nama Jurusan]
+                2. **Jurusan Alternatif**: [1-2 Nama Jurusan Cadangan]
+                3. **Hasil Analisis**:
+                   Buatlah tabel HTML persis dengan 2 kolom: `Aspek` dan `Penjelasan`. Gunakan tag HTML `<table>`, `<tr>`, `<th>`, `<td>`, dan `<br>` agar penggantian baris di dalam sel tabel dapat dirender sempurna oleh browser.
+                   
+                   Tabel WAJIB mencakup 4 baris aspek berikut:
+                   <table>
+                     <tr><th>Aspek</th><th>Penjelasan</th></tr>
+                     <tr><td>Pola Dominasi Karakter & Minat</td><td>[Penjelasan kecenderungan profil pengguna]</td></tr>
+                     <tr><td>Kesesuaian Kompetensi</td><td>• Gaya Pemecahan Masalah: [penjelasan selaras kurikulum]<br>• Kemampuan Detail/Teknis: [penjelasan mata kuliah]<br>• Ketertarikan Khusus: [penjelasan integrasi minat]</td></tr>
+                     <tr><td>Alasan Pemilihan Jurusan Utama vs Alternatif</td><td>• <b>[Jurusan Utama]</b>: [alasan].<br>• <b>[Jurusan Alternatif 1]</b>: [alasan].<br>• <b>[Jurusan Alternatif 2]</b>: [alasan].</td></tr>
+                     <tr><td>Rekomendasi Pengembangan Diri</td><td>1. [Langkah 1]<br>2. [Langkah 2]<br>3. [Langkah 3]</td></tr>
+                   </table>
 
-            4. **Rincian Biaya**:
-               Tampilkan rincian biaya Pendidikan TA 2026/2027 Universitas Nasional Karangturi dalam bentuk tabel Markdown ringkas:
-               - SPI (1x bayar): Rp 4.500.000 (Dapat diangsur 3x sebelum PKKMB)
-               - Inisiasi (1x bayar): Rp 1.200.000 (Orientasi, kaos, jas almamater)
-               - Biaya per Semester: Rp 5.500.000 (20 SKS = Rp 4.000.000 + Daftar Ulang = Rp 1.500.000)
-               Sertakan catatan ringkas biaya SKS praktikum (Rp 250.000/SKS), biaya wisuda (Rp 1.750.000), dan diskon karyawan di bawah tabel.
-            """
+                4. **Rincian Biaya**:
+                   Tampilkan rincian biaya Pendidikan TA 2026/2027 Universitas Nasional Karangturi dalam bentuk tabel Markdown ringkas:
+                   - SPI (1x bayar): Rp 4.500.000 (Dapat diangsur 3x sebelum PKKMB)
+                   - Inisiasi (1x bayar): Rp 1.200.000 (Orientasi, kaos, jas almamater)
+                   - Biaya per Semester: Rp 5.500.000 (20 SKS = Rp 4.000.000 + Daftar Ulang = Rp 1.500.000)
+                   Sertakan catatan ringkas biaya SKS praktikum (Rp 250.000/SKS), biaya wisuda (Rp 1.750.000), dan diskon karyawan di bawah tabel.
+                """
 
-            with st.spinner("SIKUNTUL sedang menyusun analisis terstruktur..."):
                 chat_completion = client.chat.completions.create(
                     messages=[
                         {
@@ -311,8 +251,33 @@ if btn_analyze:
                 )
                 
                 result = chat_completion.choices[0].message.content
+
+                # Ekstraksi Jurusan Utama dan Alternatif dari respons AI
+                jurusan_utama = ""
+                jurusan_alternatif = ""
+
+                match_utama = re.search(r"\*\*Kesimpulan Jurusan Utama\*\*:\s*(.+)", result)
+                if match_utama:
+                    jurusan_utama = match_utama.group(1).strip()
+
+                match_alt = re.search(r"\*\*Jurusan Alternatif\*\*:\s*(.+)", result)
+                if match_alt:
+                    jurusan_alternatif = match_alt.group(1).strip()
+
+                # Simpan ke Google Sheets
+                waktu_sekarang = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                row_data = [
+                    nama, kelas, asal_sekolah, no_hp,
+                    responses['q1'], responses['q2'], responses['q3'],
+                    responses['q4'], responses['q5'], responses['q6'], responses['q7'],
+                    jurusan_utama, jurusan_alternatif,
+                    waktu_sekarang
+                ]
+                
+                save_to_gsheet(row_data)
+
                 st.success(f"Analisis Komprehensif Selesai untuk {nama}!")
                 st.markdown(result, unsafe_allow_html=True)
 
-        except Exception as e:
-            st.error(f"Terjadi kesalahan saat mengonsultasikan ke AI: {e}")
+            except Exception as e:
+                st.error(f"Terjadi kesalahan saat mengonsultasikan ke AI: {e}")
