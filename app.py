@@ -1,9 +1,8 @@
-import os
 import streamlit as st
 from groq import Groq
 
 # ---------------------------------------------------------
-# 1. Konfigurasi Halaman & Styling
+# 1. Konfigurasi Halaman
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="SIKUNTUL - Sistem Konsultasi Tujuan Kuliah",
@@ -13,185 +12,153 @@ st.set_page_config(
 
 st.title("🎓 SIKUNTUL")
 st.subheader("Sistem Konsultasi untuk Menentukan Tujuan Kuliah")
-st.write("Temukan rekomendasi jurusan kuliah yang paling sesuai dengan minat dan kepribadianmu!")
-
-# Input API Key Groq pada Sidebar
-with st.sidebar:
-    st.header("⚙️ Konfigurasi API")
-    groq_api_key = st.text_input("Masukkan Groq API Key:", type="password")
-    selected_model = st.selectbox(
-        "Pilih Model Groq:",
-        ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "openai/gpt-oss-120b", "openai/gpt-oss-20b"]
-    )
-    st.info("Kunci API Groq diperlukan untuk memproses analisis AI secara mendalam.")
-
-# ---------------------------------------------------------
-# 2. Pemilihan Metode Kuesioner
-# ---------------------------------------------------------
-metode = st.radio(
-    "Pilih Metode Kuesioner:",
-    ["Metode 1: Jawaban Isian / Deskriptif", "Metode 2: Pilihan Ganda (Terstruktur)"],
-    index=0
-)
+st.write("Pilih jawaban yang paling mencerminkan dirimu untuk setiap pertanyaan, lalu biarkan AI menganalisis hasilnya!")
 
 st.divider()
 
 # ---------------------------------------------------------
-# 3. Form Input Berdasarkan Metode
+# 2. Form Kuesioner (Dropdown Pilihan A - G)
 # ---------------------------------------------------------
 responses = {}
 
-if "Metode 1" in metode:
-    st.markdown("### 📝 Metode 1: Jawab pertanyaan berikut sesuai pandanganmu")
-    
-    responses['q1'] = st.text_area("1. Aktivitas seperti apa yang paling kamu nikmati?")
-    responses['q2'] = st.text_area("2. Bidang pekerjaan apa yang paling menarik perhatianmu?")
-    responses['q3'] = st.text_area("3. Jika kamu diberi sebuah masalah, kamu lebih suka...")
-    responses['q4'] = st.text_area("4. Kemampuan apa yang paling menggambarkan dirimu?")
-    responses['q5'] = st.text_area("5. Lingkungan kerja seperti apa yang kamu bayangkan?")
-    responses['q6'] = st.text_area("6. Topik apa yang paling sering membuatmu penasaran?")
-    responses['q7'] = st.text_area("7. Jika memiliki waktu untuk belajar hal baru, kamu paling tertarik belajar tentang?")
+q1_options = [
+    "A. Mengatur kegiatan atau memimpin sebuah tim",
+    "B. Menghitung dan mengelola keuangan",
+    "C. Mendengarkan dan membantu orang lain",
+    "D. Berkomunikasi menggunakan bahasa Inggris",
+    "E. Menggunakan komputer dan teknologi",
+    "F. Bereksperimen dan menciptakan produk makanan",
+    "G. Mengelola informasi dan data kesehatan"
+]
+responses['q1'] = st.selectbox("1. Aktivitas seperti apa yang paling kamu nikmati?", q1_options)
 
-else:
-    st.markdown("### 🔘 Metode 2: Pilih jawaban yang paling sesuai")
+q2_options = [
+    "A. Pengusaha, manager, atau business development",
+    "B. Akuntan, auditor, atau financial analyst",
+    "C. HR, konselor, atau bidang pengembangan manusia",
+    "D. Guru, penerjemah, atau profesional bahasa",
+    "E. Programmer, system analyst, atau IT",
+    "F. Quality control atau pengembangan produk makanan",
+    "G. Administrasi dan informasi rumah sakit"
+]
+responses['q2'] = st.selectbox("2. Bidang pekerjaan mana yang paling menarik perhatianmu?", q2_options)
 
-    options_q1 = {
-        "A. Mengatur kegiatan atau memimpin sebuah tim": "Manajemen",
-        "B. Menghitung dan mengelola keuangan": "Akuntansi",
-        "C. Mendengarkan dan membantu orang lain": "Psikologi",
-        "D. Berkomunikasi menggunakan bahasa Inggris": "Pendidikan Bahasa Inggris",
-        "E. Menggunakan komputer dan teknologi": "Sistem Informasi",
-        "F. Bereksperimen dan menciptakan produk makanan": "Teknologi Pangan",
-        "G. Mengelola informasi dan data kesehatan": "Manajemen Informasi Kesehatan"
-    }
-    responses['q1'] = st.selectbox("1. Aktivitas seperti apa yang paling kamu nikmati?", list(options_q1.keys()))
+q3_options = [
+    "A. Membuat strategi agar tujuan dapat tercapai",
+    "B. Menganalisis angka dan data secara detail",
+    "C. Memahami orang-orang yang terlibat dalam masalah tersebut",
+    "D. Menjelaskan solusi kepada orang lain dengan komunikasi yang baik",
+    "E. Mencari solusi menggunakan teknologi",
+    "F. Melakukan penelitian atau percobaan",
+    "G. Mengorganisasi dan mengelola data/informasi"
+]
+responses['q3'] = st.selectbox("3. Jika kamu diberi sebuah masalah, kamu lebih suka…", q3_options)
 
-    options_q2 = {
-        "A. Pengusaha, manager, atau business development": "Manajemen",
-        "B. Akuntan, auditor, atau financial analyst": "Akuntansi",
-        "C. HR, konselor, atau bidang pengembangan manusia": "Psikologi",
-        "D. Guru, penerjemah, atau profesional bahasa": "Pendidikan Bahasa Inggris",
-        "E. Programmer, system analyst, atau IT": "Sistem Informasi",
-        "F. Quality control atau pengembangan produk makanan": "Teknologi Pangan",
-        "G. Administrasi dan informasi rumah sakit": "Manajemen Informasi Kesehatan"
-    }
-    responses['q2'] = st.selectbox("2. Bidang pekerjaan mana yang paling menarik perhatianmu?", list(options_q2.keys()))
+q4_options = [
+    "A. Memimpin dan mengambil keputusan",
+    "B. Teliti terhadap angka dan detail",
+    "C. Mudah memahami perasaan orang lain",
+    "D. Suka berkomunikasi dan belajar bahasa",
+    "E. Cepat memahami teknologi",
+    "F. Suka eksperimen dan memahami proses",
+    "G. Suka mengelola data dan informasi"
+]
+responses['q4'] = st.selectbox("4. Kemampuan apa yang paling menggambarkan dirimu?", q4_options)
 
-    options_q3 = {
-        "A. Membuat strategi agar tujuan dapat tercapai": "Manajemen",
-        "B. Menganalisis angka dan data secara detail": "Akuntansi",
-        "C. Memahami orang-orang yang terlibat dalam masalah tersebut": "Psikologi",
-        "D. Menjelaskan solusi kepada orang lain dengan komunikasi yang baik": "Pendidikan Bahasa Inggris",
-        "E. Mencari solusi menggunakan teknologi": "Sistem Informasi",
-        "F. Melakukan penelitian atau percobaan": "Teknologi Pangan",
-        "G. Mengorganisasi dan mengelola data/informasi": "Manajemen Informasi Kesehatan"
-    }
-    responses['q3'] = st.selectbox("3. Jika kamu diberi sebuah masalah, kamu lebih suka…", list(options_q3.keys()))
+q5_options = [
+    "A. Perusahaan atau dunia bisnis",
+    "B. Kantor keuangan atau perusahaan",
+    "C. Lingkungan yang banyak berinteraksi dengan orang",
+    "D. Sekolah atau lingkungan pendidikan",
+    "E. Perusahaan teknologi atau digital",
+    "F. Laboratorium atau industri makanan",
+    "G. Rumah sakit atau fasilitas kesehatan"
+]
+responses['q5'] = st.selectbox("5. Lingkungan kerja seperti apa yang kamu bayangkan?", q5_options)
 
-    options_q4 = {
-        "A. Memimpin dan mengambil keputusan": "Manajemen",
-        "B. Teliti terhadap angka dan detail": "Akuntansi",
-        "C. Mudah memahami perasaan orang lain": "Psikologi",
-        "D. Suka berkomunikasi dan belajar bahasa": "Pendidikan Bahasa Inggris",
-        "E. Cepat memahami teknologi": "Sistem Informasi",
-        "F. Suka eksperimen dan memahami proses": "Teknologi Pangan",
-        "G. Suka mengelola data dan informasi": "Manajemen Informasi Kesehatan"
-    }
-    responses['q4'] = st.selectbox("4. Kemampuan apa yang paling menggambarkan dirimu?", list(options_q4.keys()))
+q6_options = [
+    "A. Bagaimana sebuah bisnis bisa sukses",
+    "B. Bagaimana perusahaan mengelola uang",
+    "C. Mengapa manusia memiliki perilaku yang berbeda",
+    "D. Bagaimana berkomunikasi dengan orang dari berbagai negara",
+    "E. Bagaimana teknologi dapat membantu kehidupan manusia",
+    "F. Bagaimana makanan dibuat dan dikembangkan",
+    "G. Bagaimana data kesehatan dapat membantu pelayanan pasien"
+]
+responses['q6'] = st.selectbox("6. Topik apa yang paling sering membuatmu penasaran?", q6_options)
 
-    options_q5 = {
-        "A. Perusahaan atau dunia bisnis": "Manajemen",
-        "B. Kantor keuangan atau perusahaan": "Akuntansi",
-        "C. Lingkungan yang banyak berinteraksi dengan orang": "Psikologi",
-        "D. Sekolah atau lingkungan pendidikan": "Pendidikan Bahasa Inggris",
-        "E. Perusahaan teknologi atau digital": "Sistem Informasi",
-        "F. Laboratorium atau industri makanan": "Teknologi Pangan",
-        "G. Rumah sakit atau fasilitas kesehatan": "Manajemen Informasi Kesehatan"
-    }
-    responses['q5'] = st.selectbox("5. Lingkungan kerja seperti apa yang kamu bayangkan?", list(options_q5.keys()))
-
-    options_q6 = {
-        "A. Bagaimana sebuah bisnis bisa sukses": "Manajemen",
-        "B. Bagaimana perusahaan mengelola uang": "Akuntansi",
-        "C. Mengapa manusia memiliki perilaku yang berbeda": "Psikologi",
-        "D. Bagaimana berkomunikasi dengan orang dari berbagai negara": "Pendidikan Bahasa Inggris",
-        "E. Bagaimana teknologi dapat membantu kehidupan manusia": "Sistem Informasi",
-        "F. Bagaimana makanan dibuat dan dikembangkan": "Teknologi Pangan",
-        "G. Bagaimana data kesehatan dapat membantu pelayanan pasien": "Manajemen Informasi Kesehatan"
-    }
-    responses['q6'] = st.selectbox("6. Topik apa yang paling sering membuatmu penasaran?", list(options_q6.keys()))
-
-    options_q7 = {
-        "A. Bisnis dan cara membangun usaha": "Manajemen",
-        "B. Investasi, keuangan, dan perpajakan": "Akuntansi",
-        "C. Kepribadian dan perilaku manusia": "Psikologi",
-        "D. Bahasa dan komunikasi internasional": "Pendidikan Bahasa Inggris",
-        "E. Coding dan teknologi digital": "Sistem Informasi",
-        "F. Inovasi produk makanan": "Teknologi Pangan",
-        "G. Sistem dan informasi pelayanan kesehatan": "Manajemen Informasi Kesehatan"
-    }
-    responses['q7'] = st.selectbox("7. Jika memiliki waktu untuk belajar hal baru, kamu paling tertarik belajar tentang…", list(options_q7.keys()))
+q7_options = [
+    "A. Bisnis dan cara membangun usaha",
+    "B. Investasi, keuangan, dan perpajakan",
+    "C. Kepribadian dan perilaku manusia",
+    "D. Bahasa dan komunikasi internasional",
+    "E. Coding dan teknologi digital",
+    "F. Inovasi produk makanan",
+    "G. Sistem dan informasi pelayanan kesehatan"
+]
+responses['q7'] = st.selectbox("7. Jika memiliki waktu untuk belajar hal baru, kamu paling tertarik belajar tentang…", q7_options)
 
 # ---------------------------------------------------------
-# 4. Logika Pemrosesan AI dengan Groq
+# 3. Analisis Kesimpulan Oleh AI Groq (Mengambil Key dari Streamlit Secret)
 # ---------------------------------------------------------
+st.divider()
+
 if st.button("🚀 Analisis Rekomendasi Jurusan", type="primary"):
-    if not groq_api_key:
-        st.error("Silakan masukkan Groq API Key terlebih dahulu di menu samping (sidebar).")
+    # Membaca API Key langsung dari Secrets
+    if "GROQ_API_KEY" not in st.secrets:
+        st.error("API Key belum terkonfigurasi pada file Secrets/Streamlit Cloud.")
     else:
         try:
-            client = Groq(api_key=groq_api_key)
+            client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             
-            # Format Prompt
             prompt_content = f"""
             Kamu adalah konsultan karir dan pendidikan tepercaya bernama SIKUNTUL.
-            Analisis jawaban kuesioner pengguna di bawah ini untuk menentukan jurusan kuliah yang paling cocok.
-            
-            Pilihan Jurusan yang Tersedia:
-            1. Manajemen
-            2. Akuntansi
-            3. Psikologi
-            4. Pendidikan Bahasa Inggris
-            5. Sistem Informasi
-            6. Teknologi Pangan
-            7. Manajemen Informasi Kesehatan
+            Analisis pilihan jawaban dropdown pengguna dari 7 pertanyaan kuesioner berikut untuk menentukan kesimpulan jurusan kuliah yang paling cocok.
 
-            Hasil Jawaban Pengguna:
-            - Pertanyaan 1: {responses['q1']}
-            - Pertanyaan 2: {responses['q2']}
-            - Pertanyaan 3: {responses['q3']}
-            - Pertanyaan 4: {responses['q4']}
-            - Pertanyaan 5: {responses['q5']}
-            - Pertanyaan 6: {responses['q6']}
-            - Pertanyaan 7: {responses['q7']}
+            Target Jurusan yang Tersedia:
+            - Manajemen
+            - Akuntansi
+            - Psikologi
+            - Pendidikan Bahasa Inggris
+            - Sistem Informasi
+            - Teknologi Pangan
+            - Manajemen Informasi Kesehatan
 
-            Berikan output dengan format ringkas:
-            1. **Jurusan Utama yang Direkomendasikan**: (Tentukan 1 jurusan paling cocok)
-            2. **Jurusan Alternatif**: (1-2 jurusan cadangan yang cocok)
-            3. **Analisis Alasan**: (Penjelasan mengapa rekomendasi tersebut sesuai berdasarkan profil jawaban pengguna)
-            4. **Peluang Karir**: (Daftar opsi karir setelah lulus)
+            Jawaban yang Dipilih Pengguna:
+            1. Aktivitas Pilihan: {responses['q1']}
+            2. Pekerjaan Pilihan: {responses['q2']}
+            3. Penanganan Masalah: {responses['q3']}
+            4. Kemampuan Diri: {responses['q4']}
+            5. Lingkungan Kerja: {responses['q5']}
+            6. Topik Penasaran: {responses['q6']}
+            7. Minat Belajar: {responses['q7']}
+
+            Format keluaran jawaban:
+            1. **Kesimpulan Jurusan Utama**: [Nama Jurusan]
+            2. **Jurusan Alternatif**: [1-2 Nama Jurusan Cadangan]
+            3. **Alasan Analysis**: [Penjelasan logis mengapa pilihan A-G pengguna mengarah pada jurusan tersebut]
+            4. **Prospek Karir**: [3-5 pilihan karir lulusan tersebut]
             """
 
-            with st.spinner("SIKUNTUL sedang menganalisis pilihanmu..."):
+            with st.spinner("SIKUNTUL sedang menganalisis pola jawabanmu..."):
                 chat_completion = client.chat.completions.create(
                     messages=[
                         {
                             "role": "system",
-                            "content": "Kamu adalah konsultan pendidikan tinggi yang ramah, komunikatif, dan solutif."
+                            "content": "Kamu adalah konsultan pendidikan tinggi yang cerdas, solutif, dan ramah."
                         },
                         {
                             "role": "user",
                             "content": prompt_content,
                         }
                     ],
-                    model=selected_model,
-                    temperature=0.5,
+                    model="llama-3.3-70b-versatile",
+                    temperature=0.3,
                 )
                 
                 result = chat_completion.choices[0].message.content
                 st.success("Analisis Selesai!")
-                st.markdown("---")
                 st.markdown(result)
 
         except Exception as e:
-            st.error(f"Terjadi kesalahan saat menghubungi API Groq: {e}")
+            st.error(f"Terjadi kesalahan saat mengonsultasikan ke AI: {e}")
