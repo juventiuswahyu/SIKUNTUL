@@ -2,7 +2,7 @@ import streamlit as st
 from groq import Groq
 
 # ---------------------------------------------------------
-# 1. Konfigurasi Halaman & Judul Center
+# 1. Konfigurasi Halaman & Custom CSS (Maroon Border)
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="SIKUNTUL - Universitas Nasional Karangturi",
@@ -14,7 +14,7 @@ st.set_page_config(
 if "form_key" not in st.session_state:
     st.session_state.form_key = 0
 
-# Header Rata Tengah (Logo + Teks Rapat & Center)
+# Header & Style Border Merah Maroon untuk Komponen Radio
 st.markdown(
     """
     <style>
@@ -39,6 +39,20 @@ st.markdown(
         font-size: 0.95rem;
         color: #555555;
     }
+
+    /* Style Border Merah Maroon untuk Setiap Pertanyaan Radio */
+    div[aria-label="stRadio"] {
+        border: 2px solid #800000;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+        background-color: #fafafa;
+    }
+
+    /* Warna Aksesibilitas Tombol Radio Saat Dipilih */
+    div[role="radiogroup"] label[data-baseweb="radio"] div:first-child {
+        border-color: #800000 !important;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -49,7 +63,7 @@ col_left, col_logo, col_right = st.columns([1.2, 1.6, 1.2])
 with col_logo:
     st.image("logo (2).png", use_container_width=True)
 
-# Teks Header Rata Tengah & Tanpa Topi Wisuda
+# Teks Header Rata Tengah
 st.markdown(
     """
     <div class="header-container">
@@ -64,7 +78,7 @@ st.markdown(
 st.divider()
 
 # ---------------------------------------------------------
-# 2. Form Kuesioner (Radio Button Pilihan A - G Terbuka)
+# 2. Form Kuesioner (Dengan Border Maroon)
 # ---------------------------------------------------------
 responses = {}
 key_suffix = str(st.session_state.form_key)
