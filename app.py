@@ -16,7 +16,7 @@ if "form_key" not in st.session_state:
 
 st.title("🎓 SIKUNTUL")
 st.subheader("Sistem Konsultasi untuk Menentukan Tujuan Kuliah")
-st.write("Pilih jawaban yang paling mencerminkan dirimu untuk mendapatkan rekomendasi jurusan beserta rincian biayanya!")
+st.write("Pilih jawaban yang paling mencerminkan dirimu untuk mendapatkan analisis rekomendasi jurusan komprehensif beserta rincian biayanya!")
 
 st.divider()
 
@@ -119,7 +119,7 @@ with col2:
         st.rerun()
 
 # ---------------------------------------------------------
-# 4. Pemrosesan AI dengan Output Singkat & Padat
+# 4. Pemrosesan AI dengan Hasil Analisis Komprehensif
 # ---------------------------------------------------------
 if btn_analyze:
     if "GROQ_API_KEY" not in st.secrets:
@@ -129,10 +129,10 @@ if btn_analyze:
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             
             prompt_content = f"""
-            Kamu adalah konsultan Universitas Nasional Karangturi bernama SIKUNTUL.
-            Berikan jawaban yang SINGKAT, PADAT, dan LANGSUNG PADA POIN (jangan terlalu panjang).
+            Kamu adalah konsultan akademik dan karir senior dari Universitas Nasional Karangturi bernama SIKUNTUL.
+            Analisis pilihan kuesioner pengguna di bawah ini untuk menghasilkan **Hasil Analisis yang Komprehensif dan Mendalam**.
 
-            Target Jurusan:
+            Pilihan Jurusan yang Tersedia:
             - S1-Manajemen
             - S1-Akuntansi
             - S1-Sistem Informasi
@@ -142,33 +142,37 @@ if btn_analyze:
             - S1-Manajemen Informasi Kesehatan
 
             Jawaban Pengguna:
-            1: {responses['q1']}
-            2: {responses['q2']}
-            3: {responses['q3']}
-            4: {responses['q4']}
-            5: {responses['q5']}
-            6: {responses['q6']}
-            7: {responses['q7']}
+            1. Aktivitas: {responses['q1']}
+            2. Pekerjaan: {responses['q2']}
+            3. Penanganan Masalah: {responses['q3']}
+            4. Kemampuan Diri: {responses['q4']}
+            5. Lingkungan Kerja: {responses['q5']}
+            6. Topik Penasaran: {responses['q6']}
+            7. Minat Belajar: {responses['q7']}
 
-            Format keluaran (WAJIB HANYA 4 BAGIAN INI SAJA, DILARANG MENAMBAHKAN PROSPEK KARIR ATAU SECTION LAIN):
+            Format keluaran (HANYA GUNAKAN 4 SEKSI DI BAWAH INI):
 
             1. **Kesimpulan Jurusan Utama**: [Nama Jurusan]
             2. **Jurusan Alternatif**: [1-2 Nama Jurusan Cadangan]
-            3. **Hasil Analisis**: [Penjelasan singkat 2-3 kalimat saja mengenai alasan pemilihan jurusan berdasarkan dominasi jawaban]
+            3. **Hasil Analisis**:
+               Berikan analisis komprehensif, eksploratif, dan mendalam yang mencakup:
+               - **Pola Dominasi Karakter & Minat**: Jelaskan kecenderungan minat berdasarkan sintesis 7 pilihan jawaban di atas.
+               - **Kesesuaian Kompetensi**: Bagaimana gaya memecahkan masalah dan kemampuan pengguna sejalan dengan kurikulum jurusan rekomendasi.
+               - **Alasan Pemilihan Jurusan Utama vs Alternatif**: Mengapa jurusan utama menjadi pilihan paling optimum dibanding jurusan alternatif.
             4. **Rincian Biaya**:
-               Tampilkan rincian biaya Pendidikan TA 2026/2027 Universitas Nasional Karangturi berikut:
-               - SPI (1x bayar): Rp 4.500.000 (Dapat diangsur 3x)
-               - Inisiasi (1x bayar): Rp 1.200.000
-               - Biaya per Semester: Rp 5.500.000 (20 SKS: Rp 4.000.000 + Daftar Ulang: Rp 1.500.000)
-               Tampilkan rincian di atas dalam bentuk tabel Markdown ringkas atau list ringkas.
+               Tampilkan rincian biaya Pendidikan TA 2026/2027 Universitas Nasional Karangturi:
+               - SPI (1x bayar): Rp 4.500.000 (Dapat diangsur 3x sebelum PKKMB)
+               - Inisiasi (1x bayar): Rp 1.200.000 (Orientasi, kaos, jas almamater)
+               - Biaya per Semester: Rp 5.500.000 (20 SKS = Rp 4.000.000 + Daftar Ulang = Rp 1.500.000)
+               Tampilkan rincian ini dalam tabel Markdown ringkas dan sertakan catatan penting di bawahnya (seperti SKS praktikum Rp 250.000/SKS, biaya wisuda Rp 1.750.000, diskon karyawan).
             """
 
-            with st.spinner("SIKUNTUL sedang menganalisis..."):
+            with st.spinner("SIKUNTUL sedang menyusun analisis komprehensif..."):
                 chat_completion = client.chat.completions.create(
                     messages=[
                         {
                             "role": "system",
-                            "content": "Kamu adalah konsultan pendidikan yang memberikan jawaban sangat ringkas, to the point, dan tidak berbelit-belit."
+                            "content": "Kamu adalah konsultan karir perguruan tinggi yang memberikan analisis mendalam, tajam, komprehensif, dan mudah dipahami."
                         },
                         {
                             "role": "user",
@@ -176,11 +180,11 @@ if btn_analyze:
                         }
                     ],
                     model="openai/gpt-oss-120b",
-                    temperature=0.2,
+                    temperature=0.4,
                 )
                 
                 result = chat_completion.choices[0].message.content
-                st.success("Analisis Selesai!")
+                st.success("Analisis Komprehensif Selesai!")
                 st.markdown(result)
 
         except Exception as e:
