@@ -2,7 +2,7 @@ import streamlit as st
 from groq import Groq
 
 # ---------------------------------------------------------
-# 1. Konfigurasi Halaman & Judul
+# 1. Konfigurasi Halaman & Judul Center
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="SIKUNTUL - Universitas Nasional Karangturi",
@@ -14,14 +14,52 @@ st.set_page_config(
 if "form_key" not in st.session_state:
     st.session_state.form_key = 0
 
-# Trik meletakkan logo persis di tengah (center) menggunakan st.columns
-col_left, col_logo, col_right = st.columns([1, 2, 1])
+# Header Rata Tengah (Logo + Teks Rapat & Center)
+st.markdown(
+    """
+    <style>
+    .header-container {
+        text-align: center;
+        margin-top: -30px;
+        margin-bottom: 20px;
+    }
+    .header-title {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin-top: 5px;
+        margin-bottom: 5px;
+    }
+    .header-subtitle {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #31333F;
+        margin-bottom: 8px;
+    }
+    .header-desc {
+        font-size: 0.95rem;
+        color: #555555;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Menampilkan logo di tengah (ukuran disesuaikan)
+col_left, col_logo, col_right = st.columns([1.2, 1.6, 1.2])
 with col_logo:
     st.image("logo (2).png", use_container_width=True)
 
-st.title("🎓 SIKUNTUL")
-st.subheader("Sistem Konsultasi untuk Menentukan Tujuan Kuliah")
-st.write("Pilih jawaban yang paling mencerminkan dirimu untuk mendapatkan analisis rekomendasi jurusan komprehensif beserta rincian biayanya!")
+# Teks Header Rata Tengah & Tanpa Topi Wisuda
+st.markdown(
+    """
+    <div class="header-container">
+        <div class="header-title">SIKUNTUL</div>
+        <div class="header-subtitle">Sistem Konsultasi untuk Menentukan Tujuan Kuliah</div>
+        <div class="header-desc">Pilih jawaban yang paling mencerminkan dirimu untuk mendapatkan analisis rekomendasi jurusan komprehensif beserta rincian biayanya!</div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 st.divider()
 
@@ -124,7 +162,7 @@ with col2:
         st.rerun()
 
 # ---------------------------------------------------------
-# 4. Pemrosesan AI dengan Format Output HTML/Markdown
+# 4. Pemrosesan AI
 # ---------------------------------------------------------
 if btn_analyze:
     if "GROQ_API_KEY" not in st.secrets:
