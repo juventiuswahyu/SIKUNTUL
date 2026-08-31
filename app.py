@@ -10,13 +10,13 @@ st.set_page_config(
     layout="centered"
 )
 
-# Inisialisasi state untuk mereset pilihan jika tombol clear diklik
+# Inisialisasi state untuk reset form
 if "form_key" not in st.session_state:
     st.session_state.form_key = 0
 
 st.title("🎓 SIKUNTUL")
 st.subheader("Sistem Konsultasi untuk Menentukan Tujuan Kuliah")
-st.write("Pilih jawaban yang paling mencerminkan dirimu pada setiap pertanyaan. AI akan menganalisis jurusan yang paling cocok beserta rincian biaya pendidikannya di Universitas Nasional Karangturi!")
+st.write("Pilih jawaban yang paling mencerminkan dirimu untuk mendapatkan rekomendasi jurusan beserta rincian biayanya!")
 
 st.divider()
 
@@ -119,7 +119,7 @@ with col2:
         st.rerun()
 
 # ---------------------------------------------------------
-# 4. Logika Pemrosesan AI dengan Informasi Biaya
+# 4. Pemrosesan AI dengan Output Singkat & Padat
 # ---------------------------------------------------------
 if btn_analyze:
     if "GROQ_API_KEY" not in st.secrets:
@@ -129,53 +129,46 @@ if btn_analyze:
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             
             prompt_content = f"""
-            Kamu adalah konsultan karir dan pendaftaran mahasiswa baru Universitas Nasional Karangturi bernama SIKUNTUL.
-            Analisis pilihan kuesioner pengguna berikut untuk memberikan rekomendasi jurusan kuliah beserta rincian biaya pendidikannya untuk TA 2026/2027.
+            Kamu adalah konsultan Universitas Nasional Karangturi bernama SIKUNTUL.
+            Berikan jawaban yang SINGKAT, PADAT, dan LANGSUNG PADA POIN (jangan terlalu panjang).
 
-            Pilihan Jurusan yang Tersedia di Universitas Nasional Karangturi:
-            1. S1-Manajemen
-            2. S1-Akuntansi
-            3. S1-Sistem Informasi
-            4. S1-Teknologi Pangan
-            5. S1-Psikologi
-            6. S1-Pendidikan Bahasa Inggris
-            7. S1-Manajemen Informasi Kesehatan
+            Target Jurusan:
+            - S1-Manajemen
+            - S1-Akuntansi
+            - S1-Sistem Informasi
+            - S1-Teknologi Pangan
+            - S1-Psikologi
+            - S1-Pendidikan Bahasa Inggris
+            - S1-Manajemen Informasi Kesehatan
 
-            Pilihan Jawaban Pengguna:
-            1. Aktivitas: {responses['q1']}
-            2. Pekerjaan: {responses['q2']}
-            3. Penanganan Masalah: {responses['q3']}
-            4. Kemampuan: {responses['q4']}
-            5. Lingkungan Kerja: {responses['q5']}
-            6. Topik Penasaran: {responses['q6']}
-            7. Minat Belajar: {responses['q7']}
+            Jawaban Pengguna:
+            1: {responses['q1']}
+            2: {responses['q2']}
+            3: {responses['q3']}
+            4: {responses['q4']}
+            5: {responses['q5']}
+            6: {responses['q6']}
+            7: {responses['q7']}
 
-            Informasi Struktur Biaya Pendidikan Universitas Nasional Karangturi TA 2026/2027 (Berlaku untuk SEMUA Jurusan):
-            - SPI (Sumbangan Pengembangan Institusi) [1x Bayar Tahun Akademik]: Rp 4.500.000 (Dapat diangsur 3x sebelum PKKMB)
-            - Inisiasi [1x Bayar Tahun Akademik]: Rp 1.200.000 (Orientasi, kaos, jas almamater)
-            - 20 SKS (1 SKS = Rp 200.000) [Dibayarkan Setiap Semester]: Rp 4.000.000
-            - Daftar Ulang [Dibayarkan Setiap Semester]: Rp 1.500.000
-            - Catatan Tambahan: 
-              * Biaya SKS Praktikum = Rp 250.000 / SKS
-              * Biaya Cuti = Senilai biaya 4 SKS
-              * Biaya Wisuda = Rp 1.750.000
-              * Diskon khusus karyawan dengan menunjukkan ID card karyawan.
+            Format keluaran (WAJIB HANYA 4 BAGIAN INI SAJA, DILARANG MENAMBAHKAN PROSPEK KARIR ATAU SECTION LAIN):
 
-            Format Keluaran (Gunakan Markdown rapi dan terstruktur):
             1. **Kesimpulan Jurusan Utama**: [Nama Jurusan]
             2. **Jurusan Alternatif**: [1-2 Nama Jurusan Cadangan]
-            3. **Alasan Analisis**: [Penjelasan logis kecocokan minat dengan jurusan]
-            4. **Prospek Karir**: [3-5 Peluang Karir]
-            5. **Rincian Biaya Pendidikan TA 2026/2027 (Universitas Nasional Karangturi)**:
-               Tampilkan rincian biaya komponen di atas (SPI, Inisiasi, Biaya per Semester (SKS + Daftar Ulang)) untuk jurusan rekomendasi tersebut dalam format tabel Markdown. Sertakan juga catatan ringkas biaya wisuda/praktikum di bawahnya.
+            3. **Hasil Analisis**: [Penjelasan singkat 2-3 kalimat saja mengenai alasan pemilihan jurusan berdasarkan dominasi jawaban]
+            4. **Rincian Biaya**:
+               Tampilkan rincian biaya Pendidikan TA 2026/2027 Universitas Nasional Karangturi berikut:
+               - SPI (1x bayar): Rp 4.500.000 (Dapat diangsur 3x)
+               - Inisiasi (1x bayar): Rp 1.200.000
+               - Biaya per Semester: Rp 5.500.000 (20 SKS: Rp 4.000.000 + Daftar Ulang: Rp 1.500.000)
+               Tampilkan rincian di atas dalam bentuk tabel Markdown ringkas atau list ringkas.
             """
 
-            with st.spinner("SIKUNTUL sedang menganalisis rekomendasi jurusan & menyusun rincian biaya..."):
+            with st.spinner("SIKUNTUL sedang menganalisis..."):
                 chat_completion = client.chat.completions.create(
                     messages=[
                         {
                             "role": "system",
-                            "content": "Kamu adalah konsultan pendidikan Universitas Nasional Karangturi yang ramah, jelas, profesional, dan detail."
+                            "content": "Kamu adalah konsultan pendidikan yang memberikan jawaban sangat ringkas, to the point, dan tidak berbelit-belit."
                         },
                         {
                             "role": "user",
@@ -183,11 +176,11 @@ if btn_analyze:
                         }
                     ],
                     model="openai/gpt-oss-120b",
-                    temperature=0.3,
+                    temperature=0.2,
                 )
                 
                 result = chat_completion.choices[0].message.content
-                st.success("Analisis & Rincian Biaya Selesai!")
+                st.success("Analisis Selesai!")
                 st.markdown(result)
 
         except Exception as e:
