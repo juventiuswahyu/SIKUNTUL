@@ -1,248 +1,301 @@
 import streamlit as st
+import json
+import urllib.request
 import os
-from groq import Groq
 
 st.set_page_config(
-    page_title="SIKUNTUL - AI Counseling UNKARTUR", 
+    page_title="AI Business Potential Navigator",
     page_icon="🎓",
     layout="centered"
 )
 
-# Inisialisasi Groq Client dari Streamlit Secrets atau Environment Variable
-groq_api_key = st.secrets.get("GROQ_API_KEY") or os.environ.get("GROQ_API_KEY")
+GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", os.environ.get("GROQ_API_KEY", ""))
 
-if not groq_api_key:
-    st.error("⚠️ API Key Groq belum dipasang. Silakan tambahkan GROQ_API_KEY di Streamlit Secrets!")
-    st.stop()
+# --- INITIALIZE SESSION STATE UNTUK RESET ---
+if "form_reset_key" not in st.session_state:
+    st.session_state.form_reset_key = 0
 
-client = Groq(api_key=groq_api_key)
+def clear_form():
+    st.session_state.form_reset_key += 1
 
-# Tampilkan Logo (Jika file ada)
-logo_path = "assets/logo.png"
-if os.path.exists(logo_path):
-    st.image(logo_path, width=150)
-
-st.title("🎓 SIKUNTUL AI")
-st.subheader("Sistem Konsultasi Cerdas Menentukan Tujuan Kuliah")
-st.caption("Powered by Groq AI • Universitas Nasional Karangturi TA 2026/2027")
-st.write("Jawab 7 pertanyaan di bawah ini. AI akan menganalisis preferensimu secara mendalam untuk menentukan 1 dari 7 program studi UNKARTUR yang paling cocok!")
-
-# Data 7 Prodi dan Biaya Resmi UNKARTUR (Sesuai Flyer TA 2026/2027)
-prodi_info = {
-    "S1-Manajemen": {
-        "spi": "Rp 4.500.000", "inisiasi": "Rp 1.200.000", 
-        "sks": "Rp 4.000.000", "daftar_ulang": "Rp 1.500.000", 
-        "img": "assets/manajemen.jpg"
-    },
-    "S1-Akuntansi": {
-        "spi": "Rp 4.500.000", "inisiasi": "Rp 1.200.000", 
-        "sks": "Rp 4.000.000", "daftar_ulang": "Rp 1.500.000", 
-        "img": "assets/akuntansi.jpg"
-    },
-    "S1-Sistem Informasi": {
-        "spi": "Rp 4.500.000", "inisiasi": "Rp 1.200.000", 
-        "sks": "Rp 4.000.000", "daftar_ulang": "Rp 1.500.000", 
-        "img": "assets/sistem_informasi.jpg"
-    },
-    "S1-Teknologi Pangan": {
-        "spi": "Rp 4.500.000", "inisiasi": "Rp 1.200.000", 
-        "sks": "Rp 4.000.000", "daftar_ulang": "Rp 1.500.000", 
-        "img": "assets/teknologi_pangan.jpg"
-    },
-    "S1-Psikologi": {
-        "spi": "Rp 4.500.000", "inisiasi": "Rp 1.200.000", 
-        "sks": "Rp 4.000.000", "daftar_ulang": "Rp 1.500.000", 
-        "img": "assets/psikologi.jpg"
-    },
-    "S1-Pendidikan Bahasa Inggris": {
-        "spi": "Rp 4.500.000", "inisiasi": "Rp 1.200.000", 
-        "sks": "Rp 4.000.000", "daftar_ulang": "Rp 1.500.000", 
-        "img": "assets/bahasa_inggris.jpg"
-    },
-    "S1-Manajemen Informasi Kesehatan": {
-        "spi": "Rp 4.500.000", "inisiasi": "Rp 1.200.000", 
-        "sks": "Rp 4.000.000", "daftar_ulang": "Rp 1.500.000", 
-        "img": "assets/mik.jpg"
+# --- STYLING UI ACADEMIC THEME (MAROON & GOLD) ---
+st.markdown("""
+    <style>
+    /* Latar Belakang Utama Halaman */
+    .stApp {
+        background-color: #f8fafc;
+        color: #0f172a;
     }
-}
-
-questions = [
-    {
-        "q": "1. Aktivitas seperti apa yang paling kamu nikmati?",
-        "options": [
-            "Mengatur kegiatan atau memimpin sebuah tim",
-            "Menghitung dan mengelola keuangan",
-            "Mendengarkan dan membantu orang lain",
-            "Berkomunikasi menggunakan bahasa Inggris",
-            "Menggunakan komputer dan teknologi",
-            "Bereksperimen dan menciptakan produk makanan",
-            "Mengelola informasi dan data kesehatan"
-        ]
-    },
-    {
-        "q": "2. Bidang pekerjaan mana yang paling menarik perhatianmu?",
-        "options": [
-            "Pengusaha, manager, atau business development",
-            "Akuntan, auditor, atau financial analyst",
-            "HR, konselor, atau bidang pengembangan manusia",
-            "Guru, penerjemah, atau profesional bahasa",
-            "Programmer, system analyst, atau IT",
-            "Quality control atau pengembangan produk makanan",
-            "Administrasi dan informasi rumah sakit"
-        ]
-    },
-    {
-        "q": "3. Jika kamu diberi sebuah masalah, kamu lebih suka…",
-        "options": [
-            "Membuat strategi agar tujuan dapat tercapai",
-            "Menganalisis angka dan data secara detail",
-            "Memahami orang-orang yang terlibat dalam masalah tersebut",
-            "Menjelaskan solusi kepada orang lain dengan komunikasi yang baik",
-            "Mencari solusi menggunakan teknologi",
-            "Melakukan penelitian atau percobaan",
-            "Mengorganisasi dan mengelola data/informasi"
-        ]
-    },
-    {
-        "q": "4. Kemampuan apa yang paling menggambarkan dirimu?",
-        "options": [
-            "Memimpin dan mengambil keputusan",
-            "Teliti terhadap angka dan detail",
-            "Mudah memahami perasaan orang lain",
-            "Suka berkomunikasi dan belajar bahasa",
-            "Cepat memahami teknologi",
-            "Suka eksperimen dan memahami proses",
-            "Suka mengelola data dan informasi"
-        ]
-    },
-    {
-        "q": "5. Lingkungan kerja seperti apa yang kamu bayangkan?",
-        "options": [
-            "Perusahaan atau dunia bisnis",
-            "Kantor keuangan atau perusahaan",
-            "Lingkungan yang banyak berinteraksi dengan orang",
-            "Sekolah atau lingkungan pendidikan",
-            "Perusahaan teknologi atau digital",
-            "Laboratorium atau industri makanan",
-            "Rumah sakit atau fasilitas kesehatan"
-        ]
-    },
-    {
-        "q": "6. Topik apa yang paling sering membuatmu penasaran?",
-        "options": [
-            "Bagaimana sebuah bisnis bisa sukses",
-            "Bagaimana perusahaan mengelola uang",
-            "Mengapa manusia memiliki perilaku yang berbeda",
-            "Bagaimana berkomunikasi dengan orang dari berbagai negara",
-            "Bagaimana teknologi dapat membantu kehidupan manusia",
-            "Bagaimana makanan dibuat dan dikembangkan",
-            "Bagaimana data kesehatan dapat membantu pelayanan pasien"
-        ]
-    },
-    {
-        "q": "7. Jika memiliki waktu untuk belajar hal baru, kamu paling tertarik belajar tentang…",
-        "options": [
-            "Bisnis dan cara membangun usaha",
-            "Investasi, keuangan, dan perpajakan",
-            "Kepribadian dan perilaku manusia",
-            "Bahasa dan komunikasi internasional",
-            "Coding dan teknologi digital",
-            "Inovasi produk makanan",
-            "Sistem dan informasi pelayanan kesehatan"
-        ]
+    
+    /* Title Utama (Merah Maroon) */
+    h1 {
+        color: #7A1C1C !important;
+        text-align: center;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-weight: 800;
+        margin-top: 5px;
+        letter-spacing: 0.5px;
     }
+    
+    /* Subtitle Akademik Rata Tengah */
+    .academic-subtitle {
+        text-align: center;
+        color: #475569;
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1.6;
+        margin-bottom: 25px;
+        padding: 0 10px;
+    }
+
+    /* Kunci nama agar 1 baris utuh */
+    .nowrap-text {
+        white-space: nowrap;
+    }
+
+    /* Container Form Input dengan Frame GOLD */
+    div[data-testid="stForm"] {
+        background-color: #ffffff !important;
+        border: 3px solid #D4AF37 !important; /* Warna Gold */
+        border-radius: 20px !important;
+        padding: 24px !important;
+        box-shadow: 0 10px 25px -5px rgba(212, 175, 55, 0.2);
+    }
+
+    /* Label Input */
+    label, div[data-testid="stWidgetLabel"] p {
+        color: #334155 !important;
+        font-weight: 700 !important;
+    }
+
+    /* Input Text & Selectbox Background */
+    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
+        background-color: #f8fafc !important;
+        border-color: #cbd5e1 !important;
+        color: #0f172a !important;
+        border-radius: 10px !important;
+    }
+
+    /* Tag Pilihan Multiselect (Chips) - Warna Maroon & Gold Accent */
+    span[data-baseweb="tag"] {
+        background: linear-gradient(135deg, #7A1C1C 0%, #A32A2A 100%) !important;
+        border-radius: 8px !important;
+        border: 1px solid #D4AF37 !important;
+    }
+    span[data-baseweb="tag"] span {
+        color: #ffffff !important;
+        font-weight: 600;
+    }
+
+    /* Subheader di Dalam Form (Merah Maroon) */
+    h3 {
+        color: #7A1C1C !important;
+        font-size: 1.2rem !important;
+        font-weight: 700 !important;
+    }
+
+    /* Tombol Utama (Button Maroon - Gold) */
+    .stButton>button {
+        width: 100%;
+        background: linear-gradient(135deg, #7A1C1C 0%, #A32A2A 100%);
+        color: #ffffff;
+        font-weight: bold;
+        border-radius: 12px;
+        padding: 14px;
+        border: 2px solid #D4AF37;
+        font-size: 16px;
+        box-shadow: 0 4px 14px rgba(122, 28, 28, 0.35);
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        background: linear-gradient(135deg, #8C2222 0%, #B83232 100%);
+        box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+    }
+
+    /* Box Hasil Markdown */
+    div[data-testid="stMarkdownContainer"] p {
+        color: #1e293b;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- MENAMPILKAN LOGO DI TENGAH ---
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    if os.path.exists("giphy.gif"):
+        st.image("giphy.gif", use_container_width=True)
+
+st.title("AI BUSINESS POTENTIAL NAVIGATOR")
+
+# Subtitle Rata Tengah
+st.markdown("""
+    <div class="academic-subtitle">
+        Asisten Berbasis Artificial Intelligence (AI) yang Dikembangkan oleh Program Studi Manajemen Universitas Nasional Karangturi Semarang untuk Menganalisis Potensi Bisnis Generasi Muda Berdasarkan Teori Effectuation (<span class="nowrap-text">Prof. Saras D. Sarasvathy, Ph.D. - University of Virginia</span>).
+    </div>
+""", unsafe_allow_html=True)
+
+# --- DAFTAR PILIHAN DROPDOWN ---
+
+WHO_OPTIONS = [
+    "📱 Suka bikin konten media sosial / video kreatif",
+    "👗 Tertarik dengan tren fashion & apparel",
+    "🗣️ Komunikatif, percaya diri & ramah",
+    "🎮 Hobi gaming & paham tren teknologi/E-sports",
+    "🎨 Kreatif, suka menggambar / seni visual & desain",
+    "🍰 Suka memasak / eksplorasi kuliner",
+    "🛍️ Gemar bernegosiasi & menawarkan barang ke teman",
+    "✈️ Suka fotografi & eksplorasi tempat baru",
+    "🌱 Peduli gaya hidup sehat & produk ramah lingkungan",
+    "🎧 Mengikuti tren pop culture, musik & gaya hidup generasi muda"
 ]
 
-# Form Input User
-with st.form("sikuntul_form"):
-    user_answers = []
-    for i, item in enumerate(questions):
-        choice = st.radio(item["q"], item["options"], key=i)
-        user_answers.append(f"{item['q']}: {choice}")
+WHAT_OPTIONS = [
+    "📚 Pemahaman ilmu sosial, ekonomi & bisnis dasar",
+    "🔬 Pemahaman sains, logika & analitikal",
+    "💻 Keterampilan teknologi, desain grafis & digital",
+    "🎤 Kemampuan public speaking & presentasi",
+    "📈 Pemahaman tren digital & media sosial",
+    "🎬 Kemampuan editing foto & video",
+    "✍️ Kemampuan menulis kreatif & copywriting",
+    "🧮 Keterampilan perhitungan & manajemen keuangan dasar",
+    "🌐 Menguasai bahasa asing (Inggris/Lainnya)",
+    "💡 Kemampuan pemecahan masalah & ide inovatif"
+]
+
+WHOM_OPTIONS = [
+    "📸 Punya rekan/saudara yang jago fotografi & videografi",
+    "🧵 Kerabat/keluarga memiliki bisnis/UMKM",
+    "🛍️ Teman sebaya yang konsumtif & menyukai barang tren",
+    "🌟 Memiliki akses/kontak dengan pembuat konten (content creator)",
+    "👥 Aktif di organisasi sekolah / komunitas pemuda",
+    "🚚 Akses mudah ke distributor grosir / pasar utama",
+    "💻 Punya rekan yang mahir di bidang IT / pembuatan website",
+    "📊 Memiliki relasi yang berpengalaman di bidang manajemen/hukum",
+    "🤝 Komunitas / teman sekelas yang kompak & suportif",
+    "🏫 Akses untuk berpartisipasi di bazar / pameran"
+]
+
+TARGET_OPTIONS = [
+    "Membangun bisnis mandiri saat berkuliah",
+    "Mendapatkan penghasilan tambahan saat sekolah/kuliah",
+    "Membangun brand produk (fashion/skincare/lifestyle) sendiri",
+    "Mendirikan agensi kreatif / penyedia jasa digital",
+    "Mengembangkan bisnis keluarga / UMKM lokal",
+    "Mendirikan usaha kuliner modern",
+    "Mengembangkan bisnis berbasis teknologi / aplikasi"
+]
+
+# --- FORM INPUT ---
+reset_key = st.session_state.form_reset_key
+
+with st.form("fortune_form"):
+    nama = st.text_input(
+        "Nama Kamu & Asal Sekolah (Opsional)", 
+        placeholder="Contoh: Budi - SMAN 1",
+        key=f"nama_{reset_key}"
+    )
+    target = st.selectbox(
+        "🎯 Target Impian Kamu", 
+        TARGET_OPTIONS,
+        key=f"target_{reset_key}"
+    )
     
-    submitted = st.form_submit_button("🤖 Analisis dengan AI")
+    st.subheader("🃏 Pilih Kartu Modal Kamu (Bisa Pilih Banyak)")
+    
+    selected_who = st.multiselect(
+        "Kartu 1: Who I Am (Karakter / Minat / Hobi)", 
+        WHO_OPTIONS,
+        key=f"who_{reset_key}"
+    )
+    selected_what = st.multiselect(
+        "Kartu 2: What I Know (Pengetahuan & Keahlian)", 
+        WHAT_OPTIONS,
+        key=f"what_{reset_key}"
+    )
+    selected_whom = st.multiselect(
+        "Kartu 3: Whom I Know (Jaringan & Akses Relasi)", 
+        WHOM_OPTIONS,
+        key=f"whom_{reset_key}"
+    )
+    
+    # Grid 2 Kolom untuk Tombol
+    btn_col1, btn_col2 = st.columns([3, 1])
+    
+    with btn_col1:
+        submitted = st.form_submit_button("✨ ANALISIS POTENSI BISNIS SEKARANG!")
+    with btn_col2:
+        cleared = st.form_submit_button("🗑️ CLEAR", on_click=clear_form)
 
-if submitted:
-    with st.spinner("AI SIKUNTUL sedang menganalisis minat dan bakatmu..."):
-        prompt_system = """
-        Kamu adalah AI Konselor Akademik profesional untuk Universitas Nasional Karangturi (UNKARTUR).
-        Tugasmu adalah menganalisis jawaban kuesioner siswa dan memilih EXACT 1 PROGRAM STUDI TERBAIK dari 7 pilihan berikut:
-        - S1-Manajemen
-        - S1-Akuntansi
-        - S1-Sistem Informasi
-        - S1-Teknologi Pangan
-        - S1-Psikologi
-        - S1-Pendidikan Bahasa Inggris
-        - S1-Manajemen Informasi Kesehatan
+if submitted and not cleared:
+    if not selected_who and not selected_what and not selected_whom:
+        st.warning("Pilih minimal satu opsi dari kartu modal kamu!")
+    elif not GROQ_API_KEY:
+        st.error("API Key Groq belum diatur di Streamlit Secrets!")
+    else:
+        with st.spinner("🤖 AI sedang menganalisis potensi bisnismu..."):
+            who_str = ", ".join(selected_who) if selected_who else "Tidak diisi"
+            what_str = ", ".join(selected_what) if selected_what else "Tidak diisi"
+            whom_str = ", ".join(selected_whom) if selected_whom else "Tidak diisi"
 
-        Format Output Bahasa Indonesia yang rapi:
-        **Rekomendasi Utama: [Nama Prodi Tepat seperti daftar di atas]**
-        
-        **Alasan Analisis AI:**
-        [Penjelasan personal dan mendalam mengapa prodi ini paling cocok berdasarkan pola jawaban siswa]
+            prompt = f"""
+            Tugasmu adalah merekomendasikan 3 pilihan jenis bisnis yang cocok berdasarkan modal Effectuation ("Bird-in-Hand") siswa.
 
-        **Prospek Karir Masa Depan:**
-        - [Karir 1]
-        - [Karir 2]
-        - [Karir 3]
-        """
+            Data Input Siswa:
+            - Nama: {nama if nama else 'Siswa'}
+            - Cita-Cita: {target}
+            - Kartu 1 (Who I Am): {who_str}
+            - Kartu 2 (What I Know): {what_str}
+            - Kartu 3 (Whom I Know): {whom_str}
 
-        prompt_user = "Berikut adalah jawaban kuesioner siswa:\n" + "\n".join(user_answers)
+            INSTRUKSI OUTPUT:
+            - JANGAN membuat nama merek buatan (misal: Nomad Glow, TechWear, dll). Sebutkan jenis/kategori bisnisnya saja.
+            - Berikan 3 opsi rekomendasi bisnis yang realistis & relevan dari modal siswa.
+            - Gunakan bahasa kasual, ramah anak muda, dan suportif.
 
-        try:
-            # Menggunakan model llama3-8b-8192 yang stabil di Groq API
-            response = client.chat.completions.create(
-                model="llama3-8b-8192",
-                messages=[
-                    {"role": "system", "content": prompt_system},
-                    {"role": "user", "content": prompt_user}
-                ],
-                temperature=0.7,
-                max_tokens=800
-            )
+            Format output HANYA gunakan Markdown seperti ini:
 
-            result_text = response.choices[0].message.content
-            
-            # Parsing Hasil Groq untuk Menentukan Gambar & Biaya Mana yang Tampil
-            selected_prodi = "S1-Manajemen" # Default Fallback
-            for prodi in prodi_info.keys():
-                if prodi.lower() in result_text.lower():
-                    selected_prodi = prodi
-                    break
-            
-            st.divider()
-            st.success("🎉 Analisis AI SIKUNTUL Selesai!")
-            
-            # Tampilkan Gambar Prodi Terpilih
-            img_path = prodi_info[selected_prodi]["img"]
-            if os.path.exists(img_path):
-                st.image(img_path, caption=f"Program Studi {selected_prodi}", use_column_width=True)
-            
-            # Tampilkan Hasil Analisis Teks dari AI
-            st.markdown(result_text)
-            
-            # Tampilkan Rincian Biaya Pendidikan Resmi
-            data_biaya = prodi_info[selected_prodi]
-            st.markdown("---")
-            st.markdown(f"#### 💳 **Rincian Biaya Pendidikan Resmi ({selected_prodi})**")
-            st.caption("Universitas Nasional Karangturi TA 2026/2027")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric(label="SPI (1x Bayar)", value=data_biaya["spi"])
-                st.metric(label="Biaya Inisiasi (1x Bayar)", value=data_biaya["inisiasi"])
-            with col2:
-                st.metric(label="Biaya 20 SKS / Semester", value=data_biaya["sks"])
-                st.metric(label="Daftar Ulang / Semester", value=data_biaya["daftar_ulang"])
-                
-            with st.expander("📌 **Catatan Ketentuan Biaya**"):
-                st.write("""
-                1. **SPI (Sumbangan Pengembangan Institusi)** dapat diangsur selama 3x dan harus lunas sebelum kegiatan PKKMB.
-                2. **Biaya Inisiasi** dibayar 1x saat registrasi (terdiri dari biaya orientasi, kaos, dan jas almamater).
-                3. **Biaya SKS per Semester:** Rp 200.000 / SKS (Praktikum: Rp 250.000 / SKS).
-                4. Pelunasan Daftar Ulang dan SKS tiap semester sebagai syarat pengisian KRS di awal semester.
-                5. Biaya belum termasuk biaya magang, cuti, skripsi, dan wisuda (Biaya wisuda = Rp 1.750.000).
-                """)
+            ### 🎓 Hasil Analisis Rekomendasi Bisnis
 
-        except Exception as e:
-            st.error(f"Terjadi kesalahan saat berkomunikasi dengan AI: {e}")
+            1. **[Kategori Bisnis Opsi 1]**
+               - **Gambaran Bisnis:** [Penjelasan singkat 1-2 kalimat]
+               - **Alasan Cocok:** [Penjelasan singkat mengapa cocok dengan kombinasi modalnya]
+
+            2. **[Kategori Bisnis Opsi 2]**
+               - **Gambaran Bisnis:** [Penjelasan singkat 1-2 kalimat]
+               - **Alasan Cocok:** [Penjelasan singkat mengapa cocok dengan kombinasi modalnya]
+
+            3. **[Kategori Bisnis Opsi 3]**
+               - **Gambaran Bisnis:** [Penjelasan singkat 1-2 kalimat]
+               - **Alasan Cocok:** [Penjelasan singkat mengapa cocok dengan kombinasi modalnya]
+
+            ---
+            💡 *Pilih salah satu ide di atas yang paling bikin kamu bersemangat untuk memulainya!*
+            """
+
+            try:
+                # Menggunakan model llama-3.1-8b-instant yang aktif & cepat
+                req_data = json.dumps({
+                    "model": "llama-3.1-8b-instant",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.7
+                }).encode('utf-8')
+
+                groq_req = urllib.request.Request(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {GROQ_API_KEY}",
+                        "Content-Type": "application/json",
+                        "User-Agent": "Mozilla/5.0"
+                    },
+                    data=req_data
+                )
+
+                with urllib.request.urlopen(groq_req) as response:
+                    res_data = json.loads(response.read().decode('utf-8'))
+                    ai_result = res_data['choices'][0]['message']['content']
+                    
+                    st.success("Analisis Selesai!")
+                    st.markdown(ai_result)
+            except Exception as e:
+                st.error(f"Gagal memproses analisis: {str(e)}")
