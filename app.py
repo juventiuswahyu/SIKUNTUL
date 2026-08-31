@@ -14,7 +14,9 @@ st.set_page_config(
 if "form_key" not in st.session_state:
     st.session_state.form_key = 0
 
-st.title("🎓 SIKUNTUL")
+# Menampilkan logo GIF pengganti teks/emoji lama
+st.image("logo.gif", width=250)
+st.title("SIKUNTUL")
 st.subheader("Sistem Konsultasi untuk Menentukan Tujuan Kuliah")
 st.write("Pilih jawaban yang paling mencerminkan dirimu untuk mendapatkan analisis rekomendasi jurusan komprehensif beserta rincian biayanya!")
 
@@ -119,7 +121,7 @@ with col2:
         st.rerun()
 
 # ---------------------------------------------------------
-# 4. Pemrosesan AI dengan Penanganan HTML & Baris Baru
+# 4. Pemrosesan AI
 # ---------------------------------------------------------
 if btn_analyze:
     if "GROQ_API_KEY" not in st.secrets:
@@ -192,7 +194,6 @@ if btn_analyze:
                 
                 result = chat_completion.choices[0].message.content
                 st.success("Analisis Komprehensif Selesai!")
-                # Mengaktifkan unsafe_allow_html agar tag <br> dan tabel HTML dirender dengan rapi
                 st.markdown(result, unsafe_allow_html=True)
 
         except Exception as e:
