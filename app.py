@@ -1,301 +1,197 @@
-import streamlit as st
-import json
-import urllib.request
 import os
+import streamlit as st
+from groq import Groq
 
+# ---------------------------------------------------------
+# 1. Konfigurasi Halaman & Styling
+# ---------------------------------------------------------
 st.set_page_config(
-    page_title="AI Business Potential Navigator",
+    page_title="SIKUNTUL - Sistem Konsultasi Tujuan Kuliah",
     page_icon="🎓",
     layout="centered"
 )
 
-GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", os.environ.get("GROQ_API_KEY", ""))
+st.title("🎓 SIKUNTUL")
+st.subheader("Sistem Konsultasi untuk Menentukan Tujuan Kuliah")
+st.write("Temukan rekomendasi jurusan kuliah yang paling sesuai dengan minat dan kepribadianmu!")
 
-# --- INITIALIZE SESSION STATE UNTUK RESET ---
-if "form_reset_key" not in st.session_state:
-    st.session_state.form_reset_key = 0
-
-def clear_form():
-    st.session_state.form_reset_key += 1
-
-# --- STYLING UI ACADEMIC THEME (MAROON & GOLD) ---
-st.markdown("""
-    <style>
-    /* Latar Belakang Utama Halaman */
-    .stApp {
-        background-color: #f8fafc;
-        color: #0f172a;
-    }
-    
-    /* Title Utama (Merah Maroon) */
-    h1 {
-        color: #7A1C1C !important;
-        text-align: center;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        font-weight: 800;
-        margin-top: 5px;
-        letter-spacing: 0.5px;
-    }
-    
-    /* Subtitle Akademik Rata Tengah */
-    .academic-subtitle {
-        text-align: center;
-        color: #475569;
-        font-size: 14px;
-        font-weight: 500;
-        line-height: 1.6;
-        margin-bottom: 25px;
-        padding: 0 10px;
-    }
-
-    /* Kunci nama agar 1 baris utuh */
-    .nowrap-text {
-        white-space: nowrap;
-    }
-
-    /* Container Form Input dengan Frame GOLD */
-    div[data-testid="stForm"] {
-        background-color: #ffffff !important;
-        border: 3px solid #D4AF37 !important; /* Warna Gold */
-        border-radius: 20px !important;
-        padding: 24px !important;
-        box-shadow: 0 10px 25px -5px rgba(212, 175, 55, 0.2);
-    }
-
-    /* Label Input */
-    label, div[data-testid="stWidgetLabel"] p {
-        color: #334155 !important;
-        font-weight: 700 !important;
-    }
-
-    /* Input Text & Selectbox Background */
-    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
-        background-color: #f8fafc !important;
-        border-color: #cbd5e1 !important;
-        color: #0f172a !important;
-        border-radius: 10px !important;
-    }
-
-    /* Tag Pilihan Multiselect (Chips) - Warna Maroon & Gold Accent */
-    span[data-baseweb="tag"] {
-        background: linear-gradient(135deg, #7A1C1C 0%, #A32A2A 100%) !important;
-        border-radius: 8px !important;
-        border: 1px solid #D4AF37 !important;
-    }
-    span[data-baseweb="tag"] span {
-        color: #ffffff !important;
-        font-weight: 600;
-    }
-
-    /* Subheader di Dalam Form (Merah Maroon) */
-    h3 {
-        color: #7A1C1C !important;
-        font-size: 1.2rem !important;
-        font-weight: 700 !important;
-    }
-
-    /* Tombol Utama (Button Maroon - Gold) */
-    .stButton>button {
-        width: 100%;
-        background: linear-gradient(135deg, #7A1C1C 0%, #A32A2A 100%);
-        color: #ffffff;
-        font-weight: bold;
-        border-radius: 12px;
-        padding: 14px;
-        border: 2px solid #D4AF37;
-        font-size: 16px;
-        box-shadow: 0 4px 14px rgba(122, 28, 28, 0.35);
-        transition: all 0.3s ease;
-    }
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        background: linear-gradient(135deg, #8C2222 0%, #B83232 100%);
-        box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
-    }
-
-    /* Box Hasil Markdown */
-    div[data-testid="stMarkdownContainer"] p {
-        color: #1e293b;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- MENAMPILKAN LOGO DI TENGAH ---
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    if os.path.exists("giphy.gif"):
-        st.image("giphy.gif", use_container_width=True)
-
-st.title("AI BUSINESS POTENTIAL NAVIGATOR")
-
-# Subtitle Rata Tengah
-st.markdown("""
-    <div class="academic-subtitle">
-        Asisten Berbasis Artificial Intelligence (AI) yang Dikembangkan oleh Program Studi Manajemen Universitas Nasional Karangturi Semarang untuk Menganalisis Potensi Bisnis Generasi Muda Berdasarkan Teori Effectuation (<span class="nowrap-text">Prof. Saras D. Sarasvathy, Ph.D. - University of Virginia</span>).
-    </div>
-""", unsafe_allow_html=True)
-
-# --- DAFTAR PILIHAN DROPDOWN ---
-
-WHO_OPTIONS = [
-    "📱 Suka bikin konten media sosial / video kreatif",
-    "👗 Tertarik dengan tren fashion & apparel",
-    "🗣️ Komunikatif, percaya diri & ramah",
-    "🎮 Hobi gaming & paham tren teknologi/E-sports",
-    "🎨 Kreatif, suka menggambar / seni visual & desain",
-    "🍰 Suka memasak / eksplorasi kuliner",
-    "🛍️ Gemar bernegosiasi & menawarkan barang ke teman",
-    "✈️ Suka fotografi & eksplorasi tempat baru",
-    "🌱 Peduli gaya hidup sehat & produk ramah lingkungan",
-    "🎧 Mengikuti tren pop culture, musik & gaya hidup generasi muda"
-]
-
-WHAT_OPTIONS = [
-    "📚 Pemahaman ilmu sosial, ekonomi & bisnis dasar",
-    "🔬 Pemahaman sains, logika & analitikal",
-    "💻 Keterampilan teknologi, desain grafis & digital",
-    "🎤 Kemampuan public speaking & presentasi",
-    "📈 Pemahaman tren digital & media sosial",
-    "🎬 Kemampuan editing foto & video",
-    "✍️ Kemampuan menulis kreatif & copywriting",
-    "🧮 Keterampilan perhitungan & manajemen keuangan dasar",
-    "🌐 Menguasai bahasa asing (Inggris/Lainnya)",
-    "💡 Kemampuan pemecahan masalah & ide inovatif"
-]
-
-WHOM_OPTIONS = [
-    "📸 Punya rekan/saudara yang jago fotografi & videografi",
-    "🧵 Kerabat/keluarga memiliki bisnis/UMKM",
-    "🛍️ Teman sebaya yang konsumtif & menyukai barang tren",
-    "🌟 Memiliki akses/kontak dengan pembuat konten (content creator)",
-    "👥 Aktif di organisasi sekolah / komunitas pemuda",
-    "🚚 Akses mudah ke distributor grosir / pasar utama",
-    "💻 Punya rekan yang mahir di bidang IT / pembuatan website",
-    "📊 Memiliki relasi yang berpengalaman di bidang manajemen/hukum",
-    "🤝 Komunitas / teman sekelas yang kompak & suportif",
-    "🏫 Akses untuk berpartisipasi di bazar / pameran"
-]
-
-TARGET_OPTIONS = [
-    "Membangun bisnis mandiri saat berkuliah",
-    "Mendapatkan penghasilan tambahan saat sekolah/kuliah",
-    "Membangun brand produk (fashion/skincare/lifestyle) sendiri",
-    "Mendirikan agensi kreatif / penyedia jasa digital",
-    "Mengembangkan bisnis keluarga / UMKM lokal",
-    "Mendirikan usaha kuliner modern",
-    "Mengembangkan bisnis berbasis teknologi / aplikasi"
-]
-
-# --- FORM INPUT ---
-reset_key = st.session_state.form_reset_key
-
-with st.form("fortune_form"):
-    nama = st.text_input(
-        "Nama Kamu & Asal Sekolah (Opsional)", 
-        placeholder="Contoh: Budi - SMAN 1",
-        key=f"nama_{reset_key}"
+# Input API Key Groq pada Sidebar
+with st.sidebar:
+    st.header("⚙️ Konfigurasi API")
+    groq_api_key = st.text_input("Masukkan Groq API Key:", type="password")
+    selected_model = st.selectbox(
+        "Pilih Model Groq:",
+        ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "openai/gpt-oss-120b", "openai/gpt-oss-20b"]
     )
-    target = st.selectbox(
-        "🎯 Target Impian Kamu", 
-        TARGET_OPTIONS,
-        key=f"target_{reset_key}"
-    )
-    
-    st.subheader("🃏 Pilih Kartu Modal Kamu (Bisa Pilih Banyak)")
-    
-    selected_who = st.multiselect(
-        "Kartu 1: Who I Am (Karakter / Minat / Hobi)", 
-        WHO_OPTIONS,
-        key=f"who_{reset_key}"
-    )
-    selected_what = st.multiselect(
-        "Kartu 2: What I Know (Pengetahuan & Keahlian)", 
-        WHAT_OPTIONS,
-        key=f"what_{reset_key}"
-    )
-    selected_whom = st.multiselect(
-        "Kartu 3: Whom I Know (Jaringan & Akses Relasi)", 
-        WHOM_OPTIONS,
-        key=f"whom_{reset_key}"
-    )
-    
-    # Grid 2 Kolom untuk Tombol
-    btn_col1, btn_col2 = st.columns([3, 1])
-    
-    with btn_col1:
-        submitted = st.form_submit_button("✨ ANALISIS POTENSI BISNIS SEKARANG!")
-    with btn_col2:
-        cleared = st.form_submit_button("🗑️ CLEAR", on_click=clear_form)
+    st.info("Kunci API Groq diperlukan untuk memproses analisis AI secara mendalam.")
 
-if submitted and not cleared:
-    if not selected_who and not selected_what and not selected_whom:
-        st.warning("Pilih minimal satu opsi dari kartu modal kamu!")
-    elif not GROQ_API_KEY:
-        st.error("API Key Groq belum diatur di Streamlit Secrets!")
+# ---------------------------------------------------------
+# 2. Pemilihan Metode Kuesioner
+# ---------------------------------------------------------
+metode = st.radio(
+    "Pilih Metode Kuesioner:",
+    ["Metode 1: Jawaban Isian / Deskriptif", "Metode 2: Pilihan Ganda (Terstruktur)"],
+    index=0
+)
+
+st.divider()
+
+# ---------------------------------------------------------
+# 3. Form Input Berdasarkan Metode
+# ---------------------------------------------------------
+responses = {}
+
+if "Metode 1" in metode:
+    st.markdown("### 📝 Metode 1: Jawab pertanyaan berikut sesuai pandanganmu")
+    
+    responses['q1'] = st.text_area("1. Aktivitas seperti apa yang paling kamu nikmati?")
+    responses['q2'] = st.text_area("2. Bidang pekerjaan apa yang paling menarik perhatianmu?")
+    responses['q3'] = st.text_area("3. Jika kamu diberi sebuah masalah, kamu lebih suka...")
+    responses['q4'] = st.text_area("4. Kemampuan apa yang paling menggambarkan dirimu?")
+    responses['q5'] = st.text_area("5. Lingkungan kerja seperti apa yang kamu bayangkan?")
+    responses['q6'] = st.text_area("6. Topik apa yang paling sering membuatmu penasaran?")
+    responses['q7'] = st.text_area("7. Jika memiliki waktu untuk belajar hal baru, kamu paling tertarik belajar tentang?")
+
+else:
+    st.markdown("### 🔘 Metode 2: Pilih jawaban yang paling sesuai")
+
+    options_q1 = {
+        "A. Mengatur kegiatan atau memimpin sebuah tim": "Manajemen",
+        "B. Menghitung dan mengelola keuangan": "Akuntansi",
+        "C. Mendengarkan dan membantu orang lain": "Psikologi",
+        "D. Berkomunikasi menggunakan bahasa Inggris": "Pendidikan Bahasa Inggris",
+        "E. Menggunakan komputer dan teknologi": "Sistem Informasi",
+        "F. Bereksperimen dan menciptakan produk makanan": "Teknologi Pangan",
+        "G. Mengelola informasi dan data kesehatan": "Manajemen Informasi Kesehatan"
+    }
+    responses['q1'] = st.selectbox("1. Aktivitas seperti apa yang paling kamu nikmati?", list(options_q1.keys()))
+
+    options_q2 = {
+        "A. Pengusaha, manager, atau business development": "Manajemen",
+        "B. Akuntan, auditor, atau financial analyst": "Akuntansi",
+        "C. HR, konselor, atau bidang pengembangan manusia": "Psikologi",
+        "D. Guru, penerjemah, atau profesional bahasa": "Pendidikan Bahasa Inggris",
+        "E. Programmer, system analyst, atau IT": "Sistem Informasi",
+        "F. Quality control atau pengembangan produk makanan": "Teknologi Pangan",
+        "G. Administrasi dan informasi rumah sakit": "Manajemen Informasi Kesehatan"
+    }
+    responses['q2'] = st.selectbox("2. Bidang pekerjaan mana yang paling menarik perhatianmu?", list(options_q2.keys()))
+
+    options_q3 = {
+        "A. Membuat strategi agar tujuan dapat tercapai": "Manajemen",
+        "B. Menganalisis angka dan data secara detail": "Akuntansi",
+        "C. Memahami orang-orang yang terlibat dalam masalah tersebut": "Psikologi",
+        "D. Menjelaskan solusi kepada orang lain dengan komunikasi yang baik": "Pendidikan Bahasa Inggris",
+        "E. Mencari solusi menggunakan teknologi": "Sistem Informasi",
+        "F. Melakukan penelitian atau percobaan": "Teknologi Pangan",
+        "G. Mengorganisasi dan mengelola data/informasi": "Manajemen Informasi Kesehatan"
+    }
+    responses['q3'] = st.selectbox("3. Jika kamu diberi sebuah masalah, kamu lebih suka…", list(options_q3.keys()))
+
+    options_q4 = {
+        "A. Memimpin dan mengambil keputusan": "Manajemen",
+        "B. Teliti terhadap angka dan detail": "Akuntansi",
+        "C. Mudah memahami perasaan orang lain": "Psikologi",
+        "D. Suka berkomunikasi dan belajar bahasa": "Pendidikan Bahasa Inggris",
+        "E. Cepat memahami teknologi": "Sistem Informasi",
+        "F. Suka eksperimen dan memahami proses": "Teknologi Pangan",
+        "G. Suka mengelola data dan informasi": "Manajemen Informasi Kesehatan"
+    }
+    responses['q4'] = st.selectbox("4. Kemampuan apa yang paling menggambarkan dirimu?", list(options_q4.keys()))
+
+    options_q5 = {
+        "A. Perusahaan atau dunia bisnis": "Manajemen",
+        "B. Kantor keuangan atau perusahaan": "Akuntansi",
+        "C. Lingkungan yang banyak berinteraksi dengan orang": "Psikologi",
+        "D. Sekolah atau lingkungan pendidikan": "Pendidikan Bahasa Inggris",
+        "E. Perusahaan teknologi atau digital": "Sistem Informasi",
+        "F. Laboratorium atau industri makanan": "Teknologi Pangan",
+        "G. Rumah sakit atau fasilitas kesehatan": "Manajemen Informasi Kesehatan"
+    }
+    responses['q5'] = st.selectbox("5. Lingkungan kerja seperti apa yang kamu bayangkan?", list(options_q5.keys()))
+
+    options_q6 = {
+        "A. Bagaimana sebuah bisnis bisa sukses": "Manajemen",
+        "B. Bagaimana perusahaan mengelola uang": "Akuntansi",
+        "C. Mengapa manusia memiliki perilaku yang berbeda": "Psikologi",
+        "D. Bagaimana berkomunikasi dengan orang dari berbagai negara": "Pendidikan Bahasa Inggris",
+        "E. Bagaimana teknologi dapat membantu kehidupan manusia": "Sistem Informasi",
+        "F. Bagaimana makanan dibuat dan dikembangkan": "Teknologi Pangan",
+        "G. Bagaimana data kesehatan dapat membantu pelayanan pasien": "Manajemen Informasi Kesehatan"
+    }
+    responses['q6'] = st.selectbox("6. Topik apa yang paling sering membuatmu penasaran?", list(options_q6.keys()))
+
+    options_q7 = {
+        "A. Bisnis dan cara membangun usaha": "Manajemen",
+        "B. Investasi, keuangan, dan perpajakan": "Akuntansi",
+        "C. Kepribadian dan perilaku manusia": "Psikologi",
+        "D. Bahasa dan komunikasi internasional": "Pendidikan Bahasa Inggris",
+        "E. Coding dan teknologi digital": "Sistem Informasi",
+        "F. Inovasi produk makanan": "Teknologi Pangan",
+        "G. Sistem dan informasi pelayanan kesehatan": "Manajemen Informasi Kesehatan"
+    }
+    responses['q7'] = st.selectbox("7. Jika memiliki waktu untuk belajar hal baru, kamu paling tertarik belajar tentang…", list(options_q7.keys()))
+
+# ---------------------------------------------------------
+# 4. Logika Pemrosesan AI dengan Groq
+# ---------------------------------------------------------
+if st.button("🚀 Analisis Rekomendasi Jurusan", type="primary"):
+    if not groq_api_key:
+        st.error("Silakan masukkan Groq API Key terlebih dahulu di menu samping (sidebar).")
     else:
-        with st.spinner("🤖 AI sedang menganalisis potensi bisnismu..."):
-            who_str = ", ".join(selected_who) if selected_who else "Tidak diisi"
-            what_str = ", ".join(selected_what) if selected_what else "Tidak diisi"
-            whom_str = ", ".join(selected_whom) if selected_whom else "Tidak diisi"
+        try:
+            client = Groq(api_key=groq_api_key)
+            
+            # Format Prompt
+            prompt_content = f"""
+            Kamu adalah konsultan karir dan pendidikan tepercaya bernama SIKUNTUL.
+            Analisis jawaban kuesioner pengguna di bawah ini untuk menentukan jurusan kuliah yang paling cocok.
+            
+            Pilihan Jurusan yang Tersedia:
+            1. Manajemen
+            2. Akuntansi
+            3. Psikologi
+            4. Pendidikan Bahasa Inggris
+            5. Sistem Informasi
+            6. Teknologi Pangan
+            7. Manajemen Informasi Kesehatan
 
-            prompt = f"""
-            Tugasmu adalah merekomendasikan 3 pilihan jenis bisnis yang cocok berdasarkan modal Effectuation ("Bird-in-Hand") siswa.
+            Hasil Jawaban Pengguna:
+            - Pertanyaan 1: {responses['q1']}
+            - Pertanyaan 2: {responses['q2']}
+            - Pertanyaan 3: {responses['q3']}
+            - Pertanyaan 4: {responses['q4']}
+            - Pertanyaan 5: {responses['q5']}
+            - Pertanyaan 6: {responses['q6']}
+            - Pertanyaan 7: {responses['q7']}
 
-            Data Input Siswa:
-            - Nama: {nama if nama else 'Siswa'}
-            - Cita-Cita: {target}
-            - Kartu 1 (Who I Am): {who_str}
-            - Kartu 2 (What I Know): {what_str}
-            - Kartu 3 (Whom I Know): {whom_str}
-
-            INSTRUKSI OUTPUT:
-            - JANGAN membuat nama merek buatan (misal: Nomad Glow, TechWear, dll). Sebutkan jenis/kategori bisnisnya saja.
-            - Berikan 3 opsi rekomendasi bisnis yang realistis & relevan dari modal siswa.
-            - Gunakan bahasa kasual, ramah anak muda, dan suportif.
-
-            Format output HANYA gunakan Markdown seperti ini:
-
-            ### 🎓 Hasil Analisis Rekomendasi Bisnis
-
-            1. **[Kategori Bisnis Opsi 1]**
-               - **Gambaran Bisnis:** [Penjelasan singkat 1-2 kalimat]
-               - **Alasan Cocok:** [Penjelasan singkat mengapa cocok dengan kombinasi modalnya]
-
-            2. **[Kategori Bisnis Opsi 2]**
-               - **Gambaran Bisnis:** [Penjelasan singkat 1-2 kalimat]
-               - **Alasan Cocok:** [Penjelasan singkat mengapa cocok dengan kombinasi modalnya]
-
-            3. **[Kategori Bisnis Opsi 3]**
-               - **Gambaran Bisnis:** [Penjelasan singkat 1-2 kalimat]
-               - **Alasan Cocok:** [Penjelasan singkat mengapa cocok dengan kombinasi modalnya]
-
-            ---
-            💡 *Pilih salah satu ide di atas yang paling bikin kamu bersemangat untuk memulainya!*
+            Berikan output dengan format ringkas:
+            1. **Jurusan Utama yang Direkomendasikan**: (Tentukan 1 jurusan paling cocok)
+            2. **Jurusan Alternatif**: (1-2 jurusan cadangan yang cocok)
+            3. **Analisis Alasan**: (Penjelasan mengapa rekomendasi tersebut sesuai berdasarkan profil jawaban pengguna)
+            4. **Peluang Karir**: (Daftar opsi karir setelah lulus)
             """
 
-            try:
-                # Menggunakan model llama-3.1-8b-instant yang aktif & cepat
-                req_data = json.dumps({
-                    "model": "llama-3.1-8b-instant",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.7
-                }).encode('utf-8')
-
-                groq_req = urllib.request.Request(
-                    "https://api.groq.com/openai/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {GROQ_API_KEY}",
-                        "Content-Type": "application/json",
-                        "User-Agent": "Mozilla/5.0"
-                    },
-                    data=req_data
+            with st.spinner("SIKUNTUL sedang menganalisis pilihanmu..."):
+                chat_completion = client.chat.completions.create(
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "Kamu adalah konsultan pendidikan tinggi yang ramah, komunikatif, dan solutif."
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt_content,
+                        }
+                    ],
+                    model=selected_model,
+                    temperature=0.5,
                 )
+                
+                result = chat_completion.choices[0].message.content
+                st.success("Analisis Selesai!")
+                st.markdown("---")
+                st.markdown(result)
 
-                with urllib.request.urlopen(groq_req) as response:
-                    res_data = json.loads(response.read().decode('utf-8'))
-                    ai_result = res_data['choices'][0]['message']['content']
-                    
-                    st.success("Analisis Selesai!")
-                    st.markdown(ai_result)
-            except Exception as e:
-                st.error(f"Gagal memproses analisis: {str(e)}")
+        except Exception as e:
+            st.error(f"Terjadi kesalahan saat menghubungi API Groq: {e}")
