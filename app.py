@@ -1,13 +1,12 @@
 import streamlit as st
 from groq import Groq
 import base64
-import gspread
+import requests
 from datetime import datetime
-import json
 import re
 
 # ---------------------------------------------------------
-# 1. Konfigurasi Halaman & Custom CSS (Ultra Compact & Maroon Frame)
+# 1. Konfigurasi Halaman & Custom CSS
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="SIKUNTUL - Universitas Nasional Karangturi",
@@ -79,16 +78,19 @@ st.markdown(
 )
 
 # ---------------------------------------------------------
-# Helper Function: Save to Google Sheets
+# Helper Function: Kirim ke Google Apps Script Webhook
 # ---------------------------------------------------------
-def save_to_gsheet(data_row):
+def save_to_apps_script(payload):
     try:
-        gc = gspread.service_account_from_dict(st.secrets["gcp_service_account"])
-        sheet = gc.open("Data SIKUNTUL").sheet1
-        sheet.append_row(data_row)
-        return True
+        webhook_url = st.secrets["GSHEET_WEBHOOK_URL"]
+        response = requests.post(webhook_url, json=payload)
+        if response.status_code == 200:
+            return True
+        else:
+            st.error(f"Gagal menyimpan ke Apps Script. Status Code: {response.status_code}")
+            return False
     except Exception as e:
-        st.error(f"Gagal menyimpan data ke Google Sheets: {e}")
+        st.error(f"Terjadi kesalahan saat koneksi Apps Script: {e}")
         return False
 
 # ---------------------------------------------------------
@@ -176,8 +178,8 @@ with col2:
 if btn_analyze:
     if not nama.strip() or not kelas.strip() or not asal_sekolah.strip() or not no_hp.strip():
         st.warning("⚠️ Mohon lengkapi seluruh Data Diri (Nama, Kelas, Asal Sekolah, dan No HP) sebelum melanjutkan!")
-    elif "GROQ_API_KEY" not in st.secrets:
-        st.error("GROQ_API_KEY belum ditemukan di Streamlit Secrets.")
+    elif "GROQ_API_KEY" not in st.secrets or "GSHEET_WEBHOOK_URL" not in st.secrets:
+        st.error("Konfigurasi Secret (GROQ_API_KEY / GSHEET_WEBHOOK_URL) belum lengkap.")
     else:
         with st.spinner("SIKUNTUL sedang menyusun analisis dan menyimpan data..."):
             try:
@@ -237,14 +239,8 @@ if btn_analyze:
 
                 chat_completion = client.chat.completions.create(
                     messages=[
-                        {
-                            "role": "system",
-                            "content": "Kamu adalah konsultan pendidikan yang mematuhi format HTML dan Markdown dengan sangat teliti."
-                        },
-                        {
-                            "role": "user",
-                            "content": prompt_content,
-                        }
+                        {"role": "system", "content": "Kamu adalah konsultan pendidikan yang mematuhi format HTML dan Markdown dengan sangat teliti."},
+                        {"role": "user", "content": prompt_content}
                     ],
                     model="openai/gpt-oss-120b",
                     temperature=0.3,
@@ -252,7 +248,7 @@ if btn_analyze:
                 
                 result = chat_completion.choices[0].message.content
 
-                # Ekstraksi Jurusan Utama dan Alternatif dari respons AI
+                # Ekstraksi Hasil AI
                 jurusan_utama = ""
                 jurusan_alternatif = ""
 
@@ -264,17 +260,25 @@ if btn_analyze:
                 if match_alt:
                     jurusan_alternatif = match_alt.group(1).strip()
 
-                # Simpan ke Google Sheets
-                waktu_sekarang = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                row_data = [
-                    nama, kelas, asal_sekolah, no_hp,
-                    responses['q1'], responses['q2'], responses['q3'],
-                    responses['q4'], responses['q5'], responses['q6'], responses['q7'],
-                    jurusan_utama, jurusan_alternatif,
-                    waktu_sekarang
-                ]
-                
-                save_to_gsheet(row_data)
+                # Kirim Payload ke Google Apps Script
+                payload = {
+                    "nama": nama,
+                    "kelas": kelas,
+                    "asal_sekolah": asal_sekolah,
+                    "no_hp": no_hp,
+                    "q1": responses['q1'],
+                    "q2": responses['q2'],
+                    "q3": responses['q3'],
+                    "q4": responses['q4'],
+                    "q5": responses['q5'],
+                    "q6": responses['q6'],
+                    "q7": responses['q7'],
+                    "jurusan_utama": jurusan_utama,
+                    "jurusan_alternatif": jurusan_alternatif,
+                    "waktu": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+
+                save_to_apps_script(payload)
 
                 st.success(f"Analisis Komprehensif Selesai untuk {nama}!")
                 st.markdown(result, unsafe_allow_html=True)
