@@ -2,7 +2,7 @@ import streamlit as st
 from groq import Groq
 
 # ---------------------------------------------------------
-# 1. Konfigurasi Halaman
+# 1. Konfigurasi Halaman & Judul
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="SIKUNTUL - Sistem Konsultasi Tujuan Kuliah",
@@ -12,7 +12,7 @@ st.set_page_config(
 
 st.title("🎓 SIKUNTUL")
 st.subheader("Sistem Konsultasi untuk Menentukan Tujuan Kuliah")
-st.write("Pilih jawaban yang paling mencerminkan dirimu untuk setiap pertanyaan, lalu biarkan AI menganalisis hasilnya!")
+st.write("Pilih jawaban yang paling mencerminkan dirimu pada setiap pertanyaan berikut. AI akan menganalisis jurusan yang paling cocok untukmu!")
 
 st.divider()
 
@@ -21,6 +21,7 @@ st.divider()
 # ---------------------------------------------------------
 responses = {}
 
+# Pertanyaan 1
 q1_options = [
     "A. Mengatur kegiatan atau memimpin sebuah tim",
     "B. Menghitung dan mengelola keuangan",
@@ -32,6 +33,7 @@ q1_options = [
 ]
 responses['q1'] = st.selectbox("1. Aktivitas seperti apa yang paling kamu nikmati?", q1_options)
 
+# Pertanyaan 2
 q2_options = [
     "A. Pengusaha, manager, atau business development",
     "B. Akuntan, auditor, atau financial analyst",
@@ -43,6 +45,7 @@ q2_options = [
 ]
 responses['q2'] = st.selectbox("2. Bidang pekerjaan mana yang paling menarik perhatianmu?", q2_options)
 
+# Pertanyaan 3
 q3_options = [
     "A. Membuat strategi agar tujuan dapat tercapai",
     "B. Menganalisis angka dan data secara detail",
@@ -54,6 +57,7 @@ q3_options = [
 ]
 responses['q3'] = st.selectbox("3. Jika kamu diberi sebuah masalah, kamu lebih suka…", q3_options)
 
+# Pertanyaan 4
 q4_options = [
     "A. Memimpin dan mengambil keputusan",
     "B. Teliti terhadap angka dan detail",
@@ -65,6 +69,7 @@ q4_options = [
 ]
 responses['q4'] = st.selectbox("4. Kemampuan apa yang paling menggambarkan dirimu?", q4_options)
 
+# Pertanyaan 5
 q5_options = [
     "A. Perusahaan atau dunia bisnis",
     "B. Kantor keuangan atau perusahaan",
@@ -76,6 +81,7 @@ q5_options = [
 ]
 responses['q5'] = st.selectbox("5. Lingkungan kerja seperti apa yang kamu bayangkan?", q5_options)
 
+# Pertanyaan 6
 q6_options = [
     "A. Bagaimana sebuah bisnis bisa sukses",
     "B. Bagaimana perusahaan mengelola uang",
@@ -87,6 +93,7 @@ q6_options = [
 ]
 responses['q6'] = st.selectbox("6. Topik apa yang paling sering membuatmu penasaran?", q6_options)
 
+# Pertanyaan 7
 q7_options = [
     "A. Bisnis dan cara membangun usaha",
     "B. Investasi, keuangan, dan perpajakan",
@@ -99,23 +106,23 @@ q7_options = [
 responses['q7'] = st.selectbox("7. Jika memiliki waktu untuk belajar hal baru, kamu paling tertarik belajar tentang…", q7_options)
 
 # ---------------------------------------------------------
-# 3. Analisis Kesimpulan Oleh AI Groq (Mengambil Key dari Streamlit Secret)
+# 3. Analisis AI (Menggunakan Streamlit Secrets & Model Aktif)
 # ---------------------------------------------------------
 st.divider()
 
 if st.button("🚀 Analisis Rekomendasi Jurusan", type="primary"):
-    # Membaca API Key langsung dari Secrets
+    # Memeriksa apakah GROQ_API_KEY sudah diset di Streamlit Secrets
     if "GROQ_API_KEY" not in st.secrets:
-        st.error("API Key belum terkonfigurasi pada file Secrets/Streamlit Cloud.")
+        st.error("GROQ_API_KEY belum ditemukan di Streamlit Secrets.")
     else:
         try:
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             
             prompt_content = f"""
             Kamu adalah konsultan karir dan pendidikan tepercaya bernama SIKUNTUL.
-            Analisis pilihan jawaban dropdown pengguna dari 7 pertanyaan kuesioner berikut untuk menentukan kesimpulan jurusan kuliah yang paling cocok.
+            Analisis pilihan jawaban kuesioner pengguna berikut untuk memberikan rekomendasi jurusan kuliah yang paling cocok.
 
-            Target Jurusan yang Tersedia:
+            Daftar Jurusan yang Tersedia:
             - Manajemen
             - Akuntansi
             - Psikologi
@@ -124,7 +131,7 @@ if st.button("🚀 Analisis Rekomendasi Jurusan", type="primary"):
             - Teknologi Pangan
             - Manajemen Informasi Kesehatan
 
-            Jawaban yang Dipilih Pengguna:
+            Jawaban Pengguna:
             1. Aktivitas Pilihan: {responses['q1']}
             2. Pekerjaan Pilihan: {responses['q2']}
             3. Penanganan Masalah: {responses['q3']}
@@ -133,26 +140,26 @@ if st.button("🚀 Analisis Rekomendasi Jurusan", type="primary"):
             6. Topik Penasaran: {responses['q6']}
             7. Minat Belajar: {responses['q7']}
 
-            Format keluaran jawaban:
-            1. **Kesimpulan Jurusan Utama**: [Nama Jurusan]
-            2. **Jurusan Alternatif**: [1-2 Nama Jurusan Cadangan]
-            3. **Alasan Analysis**: [Penjelasan logis mengapa pilihan A-G pengguna mengarah pada jurusan tersebut]
-            4. **Prospek Karir**: [3-5 pilihan karir lulusan tersebut]
+            Format keluaran:
+            1. **Kesimpulan Jurusan Utama**: [Nama Jurusan Teratas]
+            2. **Jurusan Alternatif**: [1-2 Jurusan Cadangan]
+            3. **Alasan Analysis**: [Penjelasan mengapa pola pilihan A-G pengguna cocok dengan jurusan tersebut]
+            4. **Prospek Karir**: [3-5 contoh karir setelah lulus]
             """
 
-            with st.spinner("SIKUNTUL sedang menganalisis pola jawabanmu..."):
+            with st.spinner("SIKUNTUL sedang menganalisis pilihanmu..."):
                 chat_completion = client.chat.completions.create(
                     messages=[
                         {
                             "role": "system",
-                            "content": "Kamu adalah konsultan pendidikan tinggi yang cerdas, solutif, dan ramah."
+                            "content": "Kamu adalah konsultan pendidikan tinggi yang cerdas, solutif, dan analitis."
                         },
                         {
                             "role": "user",
                             "content": prompt_content,
                         }
                     ],
-                    model="llama-3.3-70b-versatile",
+                    model="openai/gpt-oss-120b",  # Model aktif sesuai lisensi Groq Anda
                     temperature=0.3,
                 )
                 
