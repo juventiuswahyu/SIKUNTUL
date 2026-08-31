@@ -1,233 +1,241 @@
 import streamlit as st
-from PIL import Image
 import os
-from collections import Counter
+from groq import Groq
 
 st.set_page_config(
-    page_title="SIKUNTUL - Konsultasi Jurusan UNKARTUR", 
+    page_title="SIKUNTUL - AI Counseling UNKARTUR", 
     page_icon="🎓",
     layout="centered"
 )
+
+# Inisialisasi Groq Client
+# Mengambil API key dari Streamlit Secrets atau Environment Variable
+groq_api_key = st.secrets.get("GROQ_API_KEY") or os.environ.get("GROQ_API_KEY")
+
+if not groq_api_key:
+    st.error("⚠️ API Key Groq belum dipasang. Silakan tambahkan GROQ_API_KEY di Streamlit Secrets!")
+    st.stop()
+
+client = Groq(api_key=groq_api_key)
 
 # Tampilkan Logo (Jika ada)
 logo_path = "assets/logo.png"
 if os.path.exists(logo_path):
     st.image(logo_path, width=150)
 
-st.title("🎓 SIKUNTUL")
-st.subheader("Sistem Konsultasi untuk Menentukan Tujuan Kuliah")
-st.caption("Universitas Nasional Karangturi TA 2026/2027")
-st.write("Jawab 7 pertanyaan di bawah ini untuk melihat rekomendasi jurusan beserta rincian biayanya!")
+st.title("🎓 SIKUNTUL AI")
+st.subheader("Sistem Konsultasi Cerdas Menentukan Tujuan Kuliah")
+st.caption("Powered by Groq AI • Universitas Nasional Karangturi TA 2026/2027")
+st.write("Jawab 7 pertanyaan di bawah ini. AI akan menganalisis profilmu secara mendalam untuk memilih 1 dari 7 program studi UNKARTUR yang paling cocok!")
 
-# Data Rincian Biaya Resmi UNKARTUR TA 2026/2027
-# (Nama, Deskripsi, SPI, Inisiasi, Biaya 20 SKS, Daftar Ulang, Path Gambar)
-jurusan_map = {
-    "A": (
-        "S1-Manajemen",
-        "Kamu cocok di bidang bisnis, kepemimpinan, dan strategi organisasi.",
-        "Rp 4.500.000",
-        "Rp 1.200.000",
-        "Rp 4.000.000",
-        "Rp 1.500.000",
-        "assets/manajemen.jpg"
-    ),
-    "B": (
-        "S1-Akuntansi",
-        "Kamu punya ketelitian tinggi dalam mengelola angka dan keuangan.",
-        "Rp 4.500.000",
-        "Rp 1.200.000",
-        "Rp 4.000.000",
-        "Rp 1.500.000",
-        "assets/akuntansi.jpg"
-    ),
-    "C": (
-        "S1-Psikologi",
-        "Kamu memiliki empati tinggi dan tertarik pada perilaku manusia.",
-        "Rp 4.500.000",
-        "Rp 1.200.000",
-        "Rp 4.000.000",
-        "Rp 1.500.000",
-        "assets/psikologi.jpg"
-    ),
-    "D": (
-        "S1-Pendidikan Bahasa Inggris",
-        "Kamu unggul dalam komunikasi dan interaksi internasional.",
-        "Rp 4.500.000",
-        "Rp 1.200.000",
-        "Rp 4.000.000",
-        "Rp 1.500.000",
-        "assets/bahasa_inggris.jpg"
-    ),
-    "E": (
-        "S1-Sistem Informasi",
-        "Kamu tertarik memecahkan masalah menggunakan teknologi digital.",
-        "Rp 4.500.000",
-        "Rp 1.200.000",
-        "Rp 4.000.000",
-        "Rp 1.500.000",
-        "assets/sistem_informasi.jpg"
-    ),
-    "F": (
-        "S1-Teknologi Pangan",
-        "Kamu suka bereksperimen dan berinovasi di industri makanan.",
-        "Rp 4.500.000",
-        "Rp 1.200.000",
-        "Rp 4.000.000",
-        "Rp 1.500.000",
-        "assets/teknologi_pangan.jpg"
-    ),
-    "G": (
-        "S1-Manajemen Informasi Kesehatan",
-        "Kamu cocok mengelola data dan sistem administrasi kesehatan.",
-        "Rp 4.500.000",
-        "Rp 1.200.000",
-        "Rp 4.000.000",
-        "Rp 1.500.000",
-        "assets/mik.jpg"
-    )
+# Data 7 Prodi dan Biaya Resmi UNKARTUR (Sesuai Flyer TA 2026/2027)
+prodi_info = {
+    "S1-Manajemen": {
+        "spi": "Rp 4.500.000", "inisiasi": "Rp 1.200.000", 
+        "sks": "Rp 4.000.000", "daftar_ulang": "Rp 1.500.000", 
+        "img": "assets/manajemen.jpg"
+    },
+    "S1-Akuntansi": {
+        "spi": "Rp 4.500.000", "inisiasi": "Rp 1.200.000", 
+        "sks": "Rp 4.000.000", "daftar_ulang": "Rp 1.500.000", 
+        "img": "assets/akuntansi.jpg"
+    },
+    "S1-Sistem Informasi": {
+        "spi": "Rp 4.500.000", "inisiasi": "Rp 1.200.000", 
+        "sks": "Rp 4.000.000", "daftar_ulang": "Rp 1.500.000", 
+        "img": "assets/sistem_informasi.jpg"
+    },
+    "S1-Teknologi Pangan": {
+        "spi": "Rp 4.500.000", "inisiasi": "Rp 1.200.000", 
+        "sks": "Rp 4.000.000", "daftar_ulang": "Rp 1.500.000", 
+        "img": "assets/teknologi_pangan.jpg"
+    },
+    "S1-Psikologi": {
+        "spi": "Rp 4.500.000", "inisiasi": "Rp 1.200.000", 
+        "sks": "Rp 4.000.000", "daftar_ulang": "Rp 1.500.000", 
+        "img": "assets/psikologi.jpg"
+    },
+    "S1-Pendidikan Bahasa Inggris": {
+        "spi": "Rp 4.500.000", "inisiasi": "Rp 1.200.000", 
+        "sks": "Rp 4.000.000", "daftar_ulang": "Rp 1.500.000", 
+        "img": "assets/bahasa_inggris.jpg"
+    },
+    "S1-Manajemen Informasi Kesehatan": {
+        "spi": "Rp 4.500.000", "inisiasi": "Rp 1.200.000", 
+        "sks": "Rp 4.000.000", "daftar_ulang": "Rp 1.500.000", 
+        "img": "assets/mik.jpg"
+    }
 }
 
-# Daftar Pertanyaan
 questions = [
     {
         "q": "1. Aktivitas seperti apa yang paling kamu nikmati?",
-        "options": {
-            "A. Mengatur kegiatan atau memimpin sebuah tim": "A",
-            "B. Menghitung dan mengelola keuangan": "B",
-            "C. Mendengarkan dan membantu orang lain": "C",
-            "D. Berkomunikasi menggunakan bahasa Inggris": "D",
-            "E. Menggunakan komputer dan teknologi": "E",
-            "F. Bereksperimen dan menciptakan produk makanan": "F",
-            "G. Mengelola informasi dan data kesehatan": "G"
-        }
+        "options": [
+            "Mengatur kegiatan atau memimpin sebuah tim",
+            "Menghitung dan mengelola keuangan",
+            "Mendengarkan dan membantu orang lain",
+            "Berkomunikasi menggunakan bahasa Inggris",
+            "Menggunakan komputer dan teknologi",
+            "Bereksperimen dan menciptakan produk makanan",
+            "Mengelola informasi dan data kesehatan"
+        ]
     },
     {
         "q": "2. Bidang pekerjaan mana yang paling menarik perhatianmu?",
-        "options": {
-            "A. Pengusaha, manager, atau business development": "A",
-            "B. Akuntan, auditor, atau financial analyst": "B",
-            "C. HR, konselor, atau bidang pengembangan manusia": "C",
-            "D. Guru, penerjemah, atau profesional bahasa": "D",
-            "E. Programmer, system analyst, atau IT": "E",
-            "F. Quality control atau pengembangan produk makanan": "F",
-            "G. Administrasi dan informasi rumah sakit": "G"
-        }
+        "options": [
+            "Pengusaha, manager, atau business development",
+            "Akuntan, auditor, atau financial analyst",
+            "HR, konselor, atau bidang pengembangan manusia",
+            "Guru, penerjemah, atau profesional bahasa",
+            "Programmer, system analyst, atau IT",
+            "Quality control atau pengembangan produk makanan",
+            "Administrasi dan informasi rumah sakit"
+        ]
     },
     {
         "q": "3. Jika kamu diberi sebuah masalah, kamu lebih suka…",
-        "options": {
-            "A. Membuat strategi agar tujuan dapat tercapai": "A",
-            "B. Menganalisis angka dan data secara detail": "B",
-            "C. Memahami orang-orang yang terlibat dalam masalah tersebut": "C",
-            "D. Menjelaskan solusi kepada orang lain dengan komunikasi yang baik": "D",
-            "E. Mencari solusi menggunakan teknologi": "E",
-            "F. Melakukan penelitian atau percobaan": "F",
-            "G. Mengorganisasi dan mengelola data/informasi": "G"
-        }
+        "options": [
+            "Membuat strategi agar tujuan dapat tercapai",
+            "Menganalisis angka dan data secara detail",
+            "Memahami orang-orang yang terlibat dalam masalah tersebut",
+            "Menjelaskan solusi kepada orang lain dengan komunikasi yang baik",
+            "Mencari solusi menggunakan teknologi",
+            "Melakukan penelitian atau percobaan",
+            "Mengorganisasi dan mengelola data/informasi"
+        ]
     },
     {
         "q": "4. Kemampuan apa yang paling menggambarkan dirimu?",
-        "options": {
-            "A. Memimpin dan mengambil keputusan": "A",
-            "B. Teliti terhadap angka dan detail": "B",
-            "C. Mudah memahami perasaan orang lain": "C",
-            "D. Suka berkomunikasi dan belajar bahasa": "D",
-            "E. Cepat memahami teknologi": "E",
-            "F. Suka eksperimen dan memahami proses": "F",
-            "G. Suka mengelola data dan informasi": "G"
-        }
+        "options": [
+            "Memimpin dan mengambil keputusan",
+            "Teliti terhadap angka dan detail",
+            "Mudah memahami perasaan orang lain",
+            "Suka berkomunikasi dan belajar bahasa",
+            "Cepat memahami teknologi",
+            "Suka eksperimen dan memahami proses",
+            "Suka mengelola data dan informasi"
+        ]
     },
     {
         "q": "5. Lingkungan kerja seperti apa yang kamu bayangkan?",
-        "options": {
-            "A. Perusahaan atau dunia bisnis": "A",
-            "B. Kantor keuangan atau perusahaan": "B",
-            "C. Lingkungan yang banyak berinteraksi dengan orang": "C",
-            "D. Sekolah atau lingkungan pendidikan": "D",
-            "E. Perusahaan teknologi atau digital": "E",
-            "F. Laboratorium atau industri makanan": "F",
-            "G. Rumah sakit atau fasilitas kesehatan": "G"
-        }
+        "options": [
+            "Perusahaan atau dunia bisnis",
+            "Kantor keuangan atau perusahaan",
+            "Lingkungan yang banyak berinteraksi dengan orang",
+            "Sekolah atau lingkungan pendidikan",
+            "Perusahaan teknologi atau digital",
+            "Laboratorium atau industri makanan",
+            "Rumah sakit atau fasilitas kesehatan"
+        ]
     },
     {
         "q": "6. Topik apa yang paling sering membuatmu penasaran?",
-        "options": {
-            "A. Bagaimana sebuah bisnis bisa sukses": "A",
-            "B. Bagaimana perusahaan mengelola uang": "B",
-            "C. Mengapa manusia memiliki perilaku yang berbeda": "C",
-            "D. Bagaimana berkomunikasi dengan orang dari berbagai negara": "D",
-            "E. Bagaimana teknologi dapat membantu kehidupan manusia": "E",
-            "F. Bagaimana makanan dibuat dan dikembangkan": "F",
-            "G. Bagaimana data kesehatan dapat membantu pelayanan pasien": "G"
-        }
+        "options": [
+            "Bagaimana sebuah bisnis bisa sukses",
+            "Bagaimana perusahaan mengelola uang",
+            "Mengapa manusia memiliki perilaku yang berbeda",
+            "Bagaimana berkomunikasi dengan orang dari berbagai negara",
+            "Bagaimana teknologi dapat membantu kehidupan manusia",
+            "Bagaimana makanan dibuat dan dikembangkan",
+            "Bagaimana data kesehatan dapat membantu pelayanan pasien"
+        ]
     },
     {
         "q": "7. Jika memiliki waktu untuk belajar hal baru, kamu paling tertarik belajar tentang…",
-        "options": {
-            "A. Bisnis dan cara membangun usaha": "A",
-            "B. Investasi, keuangan, dan perpajakan": "B",
-            "C. Kepribadian dan perilaku manusia": "C",
-            "D. Bahasa dan komunikasi internasional": "D",
-            "E. Coding dan teknologi digital": "E",
-            "F. Inovasi produk makanan": "F",
-            "G. Sistem dan informasi pelayanan kesehatan": "G"
-        }
+        "options": [
+            "Bisnis dan cara membangun usaha",
+            "Investasi, keuangan, dan perpajakan",
+            "Kepribadian dan perilaku manusia",
+            "Bahasa dan komunikasi internasional",
+            "Coding dan teknologi digital",
+            "Inovasi produk makanan",
+            "Sistem dan informasi pelayanan kesehatan"
+        ]
     }
 ]
 
 # Form Input User
 with st.form("sikuntul_form"):
-    answers = []
+    user_answers = []
     for i, item in enumerate(questions):
-        choice = st.radio(item["q"], list(item["options"].keys()), key=i)
-        answers.append(item["options"][choice])
+        choice = st.radio(item["q"], item["options"], key=i)
+        user_answers.append(f"{item['q']}: {choice}")
     
-    submitted = st.form_submit_button("Lihat Hasil Rekomendasi")
+    submitted = st.form_submit_button("🤖 Analisis dengan AI")
 
-# Kalkulasi & Tampilan Hasil
 if submitted:
-    counts = Counter(answers)
-    top_code, freq = counts.most_common(1)[0]
-    
-    jurusan, deskripsi, spi, inisiasi, biaya_sks, daftar_ulang = jurusan_map[top_code][:6]
-    img_path = jurusan_map[top_code][6]
-    
-    st.divider()
-    st.success("🎉 Hasil Rekomendasi Ditemukan!")
-    
-    # Menampilkan Gambar Jurusan jika File Ada
-    if os.path.exists(img_path):
-        st.image(img_path, caption=f"Program Studi {jurusan}", use_column_width=True)
-    
-    st.markdown(f"### **Rekomendasi Utama: {jurusan}**")
-    st.write(deskripsi)
-    
-    # Rincian Biaya Pendidikan Resmi
-    st.markdown("#### 💳 **Rincian Biaya Pendidikan (TA 2026/2027)**")
-    
-    st.markdown("**1. Dibayar 1x per Tahun Akademik:**")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric(label="SPI (Sumbangan Pengembangan)", value=spi)
-    with col2:
-        st.metric(label="Inisiasi", value=inisiasi)
-        
-    st.markdown("**2. Dibayarkan Setiap Semester:**")
-    col3, col4 = st.columns(2)
-    with col3:
-        st.metric(label="Biaya 20 SKS (Rp 200rb/SKS)", value=biaya_sks)
-    with col4:
-        st.metric(label="Daftar Ulang", value=daftar_ulang)
-    
-    # Catatan Ketentuan Tambahan
-    with st.expander("📌 **Catatan Ketentuan Biaya**"):
-        st.write("""
-        1. **SPI** dapat diangsur selama 3x dan harus lunas sebelum kegiatan PKKMB.
-        2. **Biaya Inisiasi** dibayar 1x saat registrasi (terdiri dari biaya orientasi, kaos, dan jas almamater).
-        3. **Biaya Kuliah per Semester:**
-           - Biaya SKS: Rp 200.000 / SKS
-           - Biaya SKS Praktikum: Rp 250.000 / SKS
-        4. Pelunasan Daftar Ulang dan SKS tiap semester sebagai syarat pengisian KRS di awal semester.
-        5. Biaya belum termasuk biaya magang, cuti, skripsi, wisuda, dll.
-        6. Biaya cuti = senilai biaya 4 SKS; Biaya wisuda = Rp 1.750.000.
-        """)
+    with st.spinner("AI SIKUNTUL sedang menganalisis minat dan bakatmu..."):
+        prompt_system = """
+        Kamu adalah AI Konselor Akademik profesional untuk Universitas Nasional Karangturi (UNKARTUR).
+        Tugasmu adalah menganalisis jawaban kuesioner siswa dan memilih 1 PROGRAM STUDI TERBAIK dari 7 prodi berikut:
+        1. S1-Manajemen
+        2. S1-Akuntansi
+        3. S1-Sistem Informasi
+        4. S1-Teknologi Pangan
+        5. S1-Psikologi
+        6. S1-Pendidikan Bahasa Inggris
+        7. S1-Manajemen Informasi Kesehatan
+
+        Format Output Harus Selalu Mengikuti Pola Tepat Berikut:
+        PRODI: [Nama Prodi Tepat seperti daftar di atas]
+        ALASAN: [Penjelasan personal dan mendalam 2-3 paragraf mengapa prodi ini paling cocok berdasarkan kombinasi jawaban siswa]
+        POTENSI KARIR: [Sebutkan 3-4 potensi karir masa depan]
+        """
+
+        prompt_user = "Berikut adalah jawaban kuesioner siswa:\n" + "\n".join(user_answers)
+
+        try:
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": prompt_system},
+                    {"role": "user", "content": prompt_user}
+                ],
+                temperature=0.7,
+                max_tokens=800
+            )
+
+            result_text = response.choices[0].message.content
+            
+            # Parsing Hasil Groq
+            selected_prodi = "S1-Manajemen" # Fallback
+            for prodi in prodi_info.keys():
+                if prodi.lower() in result_text.lower():
+                    selected_prodi = prodi
+                    break
+            
+            st.divider()
+            st.success("🎉 Analisis AI SIKUNTUL Selesai!")
+            
+            # Tampilkan Gambar
+            img_path = prodi_info[selected_prodi]["img"]
+            if os.path.exists(img_path):
+                st.image(img_path, caption=f"Program Studi {selected_prodi}", use_column_width=True)
+            
+            # Tampilkan Hasil AI
+            st.markdown(f"### **Rekomendasi Utama AI: {selected_prodi}**")
+            st.markdown(result_text)
+            
+            # Tampilkan Biaya Resmi
+            data_biaya = prodi_info[selected_prodi]
+            st.markdown("---")
+            st.markdown("#### 💳 **Rincian Biaya Pendidikan (TA 2026/2027)**")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric(label="SPI (1x Bayar)", value=data_biaya["spi"])
+                st.metric(label="Inisiasi (1x Bayar)", value=data_biaya["inisiasi"])
+            with col2:
+                st.metric(label="Biaya 20 SKS / Semester", value=data_biaya["sks"])
+                st.metric(label="Daftar Ulang / Semester", value=data_biaya["daftar_ulang"])
+                
+            with st.expander("📌 **Catatan Ketentuan Biaya**"):
+                st.write("""
+                1. **SPI** dapat diangsur selama 3x dan harus lunas sebelum kegiatan PKKMB.
+                2. **Biaya Inisiasi** dibayar 1x saat registrasi (orientasi, kaos, & jas almamater).
+                3. **Biaya SKS:** Rp 200.000 / SKS (Praktikum: Rp 250.000 / SKS).
+                4. Biaya belum termasuk magang, cuti, skripsi, dan wisuda (Wisuda = Rp 1.750.000).
+                """)
+
+        except Exception as e:
+            st.error(f"Terjadi kesalahan saat berkomunikasi dengan AI: {e}")
